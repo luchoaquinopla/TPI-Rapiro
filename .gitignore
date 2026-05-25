@@ -1,0 +1,42 @@
+# Entorno virtual
+venv/
+env/
+.env
+
+# Variables de entorno reales (nunca subir)
+.env
+
+# Modelos entrenados (pesados, subir por separado)
+models/**/*.h5
+models/**/*.keras
+
+# Datasets (pesados, no versionar)
+data/wider_face/
+data/lfw/
+data/own_dataset/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Credenciales GCP
+*.json
+!.env.example
+
+# Terraform state
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+
+# Weights & Biases
+wandb/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
