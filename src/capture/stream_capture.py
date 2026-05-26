@@ -1,15 +1,5 @@
-"""
-Pipeline de captura de video.
-
-Soporta dos fuentes:
-  - Webcam local  → CAMERA_SOURCE=0   (índice entero)
-  - IP Webcam WiFi → CAMERA_SOURCE=http://192.168.x.x:8080/video
-
-Configurar en .env o pasar el valor directamente a connect_stream().
-"""
 
 import os
-
 import cv2
 import numpy as np
 from dotenv import load_dotenv
@@ -116,6 +106,23 @@ def _apply_rotation(frame: np.ndarray) -> np.ndarray:
     return frame
 
 
+def _flip_horizontal_enabled() -> bool:
+    """True por defecto: corrige el efecto espejo típico de webcams."""
+    value = os.getenv("CAMERA_FLIP_HORIZONTAL", "1").strip().lower()
+    return value not in ("0", "false", "no", "off")
+
+
+def prepare_frame(frame: np.ndarray, *, flip_horizontal: bool | None = None) -> np.ndarray:
+    """
+    Aplica rotación y, opcionalmente, volteo horizontal al frame (BGR).
+    Usar siempre antes de mostrar o guardar imágenes.
+    """
+    frame = _apply_rotation(frame)
+    if flip_horizontal if flip_horizontal is not None else _flip_horizontal_enabled():
+        frame = cv2.flip(frame, 1)
+    return frame
+
+
 def capture_loop(source: int | str | None = None, window_name: str = "RAPIRO Preview") -> None:
     """
     Loop de captura con preview.
@@ -131,7 +138,7 @@ def capture_loop(source: int | str | None = None, window_name: str = "RAPIRO Pre
                 print(f"[WARN] No se pudo leer frame de '{src}'.")
                 break
 
-            frame = _apply_rotation(frame)
+            frame = prepare_frame(frame)
             h, w = frame.shape[:2]
 
             label = f"{src_label}  |  {w}x{h}"
@@ -155,7 +162,7 @@ def capture_single_frame(source: int | str | None = None) -> np.ndarray:
         ret, frame = cap.read()
         if not ret:
             raise RuntimeError(f"No se pudo capturar frame de '{src}'.")
-        return _apply_rotation(frame)
+        return prepare_frame(frame)
     finally:
         cap.release()
 
