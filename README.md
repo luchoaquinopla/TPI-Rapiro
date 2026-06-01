@@ -14,18 +14,20 @@ rapiro_project/
 ├── data/
 │   ├── wider_face/       # Dataset detección de rostros
 │   ├── lfw/              # Dataset Labeled Faces in the Wild
-│   └── own_dataset/      # Fotos propias por persona registrada
+│   └── own_dataset/      # Fotos propias por persona (una carpeta por persona)
 │
 ├── models/
-│   ├── detection/        # Modelo Red de Detección (.h5)
-│   ├── embedding/        # Modelo Red de Embedding (.h5)
-│   └── classification/   # Modelo Red de Clasificación (.h5)
+│   └── detection/        # Pesos del clasificador binario (.h5 / .weights.h5)
 │
 ├── src/
-│   ├── capture/          # Pipeline captura OpenCV + IP Webcam
-│   ├── networks/         # Arquitectura y entrenamiento de redes
-│   ├── robot/            # Control RAPIRO via PySerial
-│   └── cloud/            # Integración GCP (Pub/Sub, Firestore, FCM)
+│   ├── capture/
+│   │   ├── stream_capture.py      # Captura OpenCV: webcam local + IP Webcam
+│   │   ├── dataset_generator.py   # Generador de dataset por persona
+│   │   ├── model_loader.py        # Carga de modelos Keras 2/3
+│   │   └── reconocimiento_vivo.py # Clasificación binaria en tiempo real
+│   ├── networks/         # Arquitectura y entrenamiento de redes (pendiente)
+│   ├── robot/            # Control RAPIRO via PySerial (pendiente)
+│   └── cloud/            # Integración GCP (Pub/Sub, Firestore, FCM) (pendiente)
 │
 ├── tests/                # Pruebas unitarias e integración
 ├── notebooks/            # Experimentación en Jupyter/Colab
@@ -67,6 +69,45 @@ pip install -r requirements.txt
 ### 4. Verificar instalación
 ```bash
 python verify_env.py
+```
+
+---
+
+## Módulos implementados
+
+### Captura de video (`stream_capture.py`)
+
+```python
+from src.capture.stream_capture import connect_stream, prepare_frame, capture_loop
+
+# Preview en vivo (auto-detecta cámara)
+capture_loop()
+
+# Stream IP Webcam
+capture_loop("http://192.168.1.5:8080/video")
+```
+
+### Generador de dataset (`dataset_generator.py`)
+
+```bash
+# Captura 400 fotos de "luciano" (default)
+python src/capture/dataset_generator.py luciano
+
+# Fotos de "gonzalo" con configuración personalizada
+python src/capture/dataset_generator.py gonzalo --max-fotos 200 --intervalo-ms 300
+```
+
+Guarda recortes de rostros (96×96 px) en `data/own_dataset/<persona>/`.  
+Controles: **Espacio/P** para pausar · **Q** para salir.
+
+### Reconocimiento en vivo (`reconocimiento_vivo.py`)
+
+```bash
+# Usando pesos por defecto (models/detection/modelo_binario_pesos.weights.h5)
+python src/capture/reconocimiento_vivo.py
+
+# Con pesos y umbral personalizados
+python src/capture/reconocimiento_vivo.py --pesos models/detection/mis_pesos.h5 --umbral 0.45
 ```
 
 ---
