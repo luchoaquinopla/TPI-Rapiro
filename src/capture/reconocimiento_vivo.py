@@ -1,15 +1,18 @@
 """
-Reconocimiento en vivo con el mismo preprocesamiento que dataset_generator
-(espejo + rotación vía prepare_frame), para que coincida con el entrenamiento.
+Reconocimiento en vivo con integración a Google Cloud Pub/Sub.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import cv2
 import numpy as np
+from google.cloud import pubsub_v1
 
 from model_loader import load_modelo_binario
 from stream_capture import connect_stream, prepare_frame
@@ -17,26 +20,16 @@ from stream_capture import connect_stream, prepare_frame
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _RUTA_PESOS_DEFAULT = _PROJECT_ROOT / "models" / "detection" / "modelo_binario_pesos.weights.h5"
 
+# Configuración de Google Cloud
+PROJECT_ID = "project-ac5c4157-56cb-4920-98f"
+TOPIC_ID = "rapiro-robot-events"
+
 
 def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Clasificación binaria en vivo (Luciano / Paola).")
-    p.add_argument(
-        "--pesos",
-        type=Path,
-        default=_RUTA_PESOS_DEFAULT,
-        help="Ruta al .weights.h5 o .h5 de pesos",
-    )
-    p.add_argument(
-        "--umbral",
-        type=float,
-        default=0.5,
-        help="Umbral sigmoid: < umbral → clase 0, ≥ umbral → clase 1 (default 0.5)",
-    )
-    p.add_argument(
-        "--source",
-        default=None,
-        help="Cámara (número o URL). Por defecto: CAMERA_SOURCE del .env o auto-detección",
-    )
+    p = argparse.ArgumentParser(description="Clasificación binaria en vivo con Pub/Sub.")
+    p.add_argument("--pesos", type=Path, default=_RUTA_PESOS_DEFAULT)
+    p.add_argument("--umbral", type=float, default=0.5)
+    p.add_argument("--source", default=None)
     return p.parse_args()
 
 
@@ -46,21 +39,27 @@ def main() -> None:
     if source is not None and str(source).isdigit():
         source = int(source)
 
+    print("Iniciando cliente de Pub/Sub...")
+    publisher = pubsub_v1.PublisherClient()
+    topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
+
     print("Cargando arquitectura y pesos...")
     modelo = load_modelo_binario(args.pesos)
-    print("Modelo cargado correctamente.")
-
+    
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
-    # Misma convención que en el script original (verificar en Colab si invertís carpetas)
     nombres = {0: "Luciano", 1: "Paola"}
     umbral = args.umbral
 
-    print("Conectando cámara (mismo pipeline que dataset_generator)...")
+    print("Conectando cámara...")
     cap, src = connect_stream(source)
     print(f"Fuente: {src}")
-    print("Q para salir. Si falla mucho: iluminación parecida al dataset, cara frontal, probá --umbral 0.45")
+    print("Q para salir.")
+
+    # Variable para controlar no spamear mensajes a la nube (1 mensaje cada 5 segundos max)
+    ultimo_envio = 0.0
+    cooldown_segundos = 5.0
 
     try:
         while True:
@@ -94,18 +93,31 @@ def main() -> None:
                     confianza = probabilidad * 100
                     color = (255, 0, 0)
 
+                # DIBUJAR EN PANTALLA
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
-                texto = f"{nombre} {confianza:.0f}%  (p={probabilidad:.2f})"
-                cv2.putText(
-                    frame,
-                    texto,
-                    (x + 5, y - 12),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (255, 255, 255),
-                    2,
-                )
+                texto = f"{nombre} {confianza:.0f}%"
+                cv2.putText(frame, texto, (x + 5, y - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+                # ENVIAR EVENTO A GOOGLE CLOUD (con cooldown)
+                ahora = time.time()
+                if (ahora - ultimo_envio) > cooldown_segundos:
+                    # Construimos el JSON de la alerta
+                    payload = {
+                        "evento": "rostro_detectado",
+                        "identidad": nombre,
+                        "confianza": round(confianza, 2),
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                    data_bytes = json.dumps(payload).encode("utf-8")
+                    
+                    try:
+                        # Publicar asíncronamente
+                        publisher.publish(topic_path, data=data_bytes)
+                        print(f"[{datetime.now().strftime('%H:%M:%S')}] ☁️ ¡Alerta enviada a Pub/Sub! Detectado: {nombre}")
+                        ultimo_envio = ahora
+                    except Exception as e:
+                        print(f"Error al enviar a la nube: {e}")
 
             cv2.imshow("RAPIRO - Vision Artificial", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -113,7 +125,6 @@ def main() -> None:
     finally:
         cap.release()
         cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     main()
