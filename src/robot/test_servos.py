@@ -1,12 +1,4 @@
-"""
-Prueba manual de servos — ejecutar PRIMERO al llegar a la universidad.
 
-Verifica la conexión serial y permite calibrar los ángulos antes de
-correr el subscriber completo.
-
-Ejecutar en la Raspberry:
-    python test_servos.py
-"""
 
 from __future__ import annotations
 
