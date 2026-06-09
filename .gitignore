@@ -8,7 +8,7 @@ env/
 
 # Modelos entrenados (pesados, subir por separado)
 models/**/*.h5
-models/**/*.keras
+
 
 # Datasets (pesados, no versionar)
 data/wider_face/
