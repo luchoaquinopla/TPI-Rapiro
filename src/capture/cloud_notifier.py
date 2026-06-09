@@ -1,4 +1,4 @@
-"""Handles unknown-person alerts: Cloud Storage upload, Firestore record, Gmail notification."""
+
 
 from __future__ import annotations
 

@@ -22,9 +22,10 @@ _MODEL_PATH_DEFAULT = _PROJECT_ROOT / "models" / "detection" / "modelo_tpi.keras
 PROJECT_ID = "project-ac5c4157-56cb-4920-98f"
 TOPIC_ID = "rapiro-robot-events"
 
-# {index: label} must match training class_indices: {desconocido:0, luciano:1, paola:2}
+# debe coincidir con class_indices del entrenamiento: {desconocido:0, luciano:1, paola:2}
 CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
 
+# segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email
 COOLDOWN_KNOWN_S = 5.0
 COOLDOWN_UNKNOWN_S = 30.0
 
@@ -44,13 +45,16 @@ def main() -> None:
     if source is not None and str(source).isdigit():
         source = int(source)
 
+    # cliente que publica mensajes al topic de GCP
     print("Starting Pub/Sub client...")
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
+    # carga el modelo multiclase entrenado en Colab (desconocido / luciano / paola)
     print("Loading model...")
     modelo = load_modelo(args.modelo)
 
+    # detector de rostros basado en Haar Cascade (incluido en OpenCV)
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
@@ -60,6 +64,7 @@ def main() -> None:
     print(f"Source: {src}")
     print("Press Q to quit.")
 
+    # timestamps del último envío para aplicar cooldown por tipo de evento
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
 
@@ -70,6 +75,8 @@ def main() -> None:
                 break
 
             frame = prepare_frame(frame)
+
+            # Haar Cascade opera sobre escala de grises para detectar bounding boxes
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             rostros = face_cascade.detectMultiScale(
                 gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100)
@@ -78,11 +85,13 @@ def main() -> None:
             for (x, y, w, h) in rostros:
                 rostro_recortado = frame[y: y + h, x: x + w]
 
+                # preprocesamiento idéntico al usado en el entrenamiento
                 img = cv2.resize(rostro_recortado, (96, 96))
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 img_array = img.astype(np.float32) / 255.0
                 img_array = np.expand_dims(img_array, axis=0)
 
+                # el modelo devuelve 3 probabilidades (softmax) — argmax elige la clase ganadora
                 prediccion = modelo.predict(img_array, verbose=0)
                 clase_idx = int(np.argmax(prediccion[0]))
                 confianza = float(prediccion[0][clase_idx])
@@ -91,6 +100,7 @@ def main() -> None:
                 es_desconocido = clase_idx == 0
                 confianza_pct = confianza * 100
 
+                # rojo para desconocido, verde para conocido
                 color = (0, 0, 255) if es_desconocido else (0, 255, 0)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
@@ -120,6 +130,7 @@ def main() -> None:
                         except Exception as e:
                             print(f"[ERROR] Pub/Sub: {e}")
 
+                        # sube imagen a Cloud Storage, guarda en Firestore y manda email
                         notify_unknown(rostro_recortado, confianza_pct)
                 else:
                     if (ahora - ultimo_envio_conocido) > COOLDOWN_KNOWN_S:
