@@ -214,6 +214,96 @@ python src/robot/subscriber.py
 
 ---
 
+## Cómo ejecutar con el RAPIRO físico
+
+### Configuración inicial (hacer una sola vez)
+
+**1. Conectarse a la Raspberry Pi**
+
+Conectá un teclado USB y monitor HDMI a la Raspberry Pi para la primera configuración. Una vez configurada, todo lo demás se hace por SSH.
+
+**2. Configurar las redes WiFi**
+
+```bash
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+```
+
+Agregá las redes que vas a usar:
+
+```
+network={
+    ssid="NombreHotspotCelular"
+    psk="contraseñaHotspot"
+}
+
+network={
+    ssid="WiFi-Casa"
+    psk="contraseñaCasa"
+}
+```
+
+Guardá con `Ctrl+O`, salís con `Ctrl+X` y reiniciás:
+
+```bash
+sudo reboot
+```
+
+**3. Clonar el repo e instalar dependencias**
+
+```bash
+git clone https://github.com/luchoaquinopla/TPI-Rapiro.git
+cd TPI-Rapiro
+pip install pyserial google-cloud-pubsub
+```
+
+**4. Copiar las credenciales GCP**
+
+Desde tu laptop:
+```bash
+scp infrastructure/keys/gcp-key.json pi@<IP-raspberry>:~/TPI-Rapiro/infrastructure/keys/
+```
+
+---
+
+### El día de la demo
+
+**Paso 1 — Activar hotspot en el celular**
+
+Tanto tu laptop como la Raspberry Pi deben estar conectadas al mismo hotspot.
+
+**Paso 2 — Obtener la IP de la Raspberry Pi**
+
+Revisá los dispositivos conectados en la configuración del hotspot de tu celular, o desde la Raspberry Pi (si tenés acceso directo):
+```bash
+hostname -I
+```
+
+**Paso 3 — Conectarse a la Raspberry por SSH**
+
+```bash
+ssh pi@<IP-raspberry>
+```
+
+**Paso 4 — Correr el subscriber en la Raspberry**
+
+```bash
+cd TPI-Rapiro/src/robot
+export GOOGLE_APPLICATION_CREDENTIALS="../../infrastructure/keys/gcp-key.json"
+python subscriber.py
+```
+
+Vas a ver: `Escuchando en projects/...` — el RAPIRO está listo.
+
+**Paso 5 — Correr el reconocimiento en tu laptop**
+
+```bash
+python src/capture/reconocimiento_vivo.py
+```
+
+A partir de este momento: cada cara detectada publica en Pub/Sub y el RAPIRO reacciona en ~1-2 segundos.
+
+---
+
 ## Variables de entorno
 
 Crear un archivo `.env` en la raíz del proyecto:
