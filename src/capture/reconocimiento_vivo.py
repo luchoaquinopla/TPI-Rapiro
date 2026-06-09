@@ -57,7 +57,6 @@ def main() -> None:
     print(f"Fuente: {src}")
     print("Q para salir.")
 
-    # Variable para controlar no spamear mensajes a la nube (1 mensaje cada 5 segundos max)
     ultimo_envio = 0.0
     cooldown_segundos = 5.0
 
@@ -93,16 +92,13 @@ def main() -> None:
                     confianza = probabilidad * 100
                     color = (255, 0, 0)
 
-                # DIBUJAR EN PANTALLA
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
                 texto = f"{nombre} {confianza:.0f}%"
                 cv2.putText(frame, texto, (x + 5, y - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-                # ENVIAR EVENTO A GOOGLE CLOUD (con cooldown)
                 ahora = time.time()
                 if (ahora - ultimo_envio) > cooldown_segundos:
-                    # Construimos el JSON de la alerta
                     payload = {
                         "evento": "rostro_detectado",
                         "identidad": nombre,
@@ -112,7 +108,6 @@ def main() -> None:
                     data_bytes = json.dumps(payload).encode("utf-8")
                     
                     try:
-                        # Publicar asíncronamente
                         publisher.publish(topic_path, data=data_bytes)
                         print(f"[{datetime.now().strftime('%H:%M:%S')}] ☁️ ¡Alerta enviada a Pub/Sub! Detectado: {nombre}")
                         ultimo_envio = ahora
