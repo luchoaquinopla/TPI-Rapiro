@@ -43,18 +43,23 @@ SEGUNDOS_POSE = 3.0
 def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPIROController) -> None:
     try:
         data = json.loads(mensaje.data.decode("utf-8"))
-        identidad  = data.get("identidad", "desconocido")
-        confianza  = data.get("confianza", 0.0)
+        evento    = data.get("evento", "")
+        identidad = data.get("identidad", "")
+        confianza = data.get("confianza", 0.0)
 
-        logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
-
-        if identidad in IDENTIDADES_CONOCIDAS:
+        if evento == "desconocido_detectado":
+            logger.info("Desconocido detectado (%.0f%%) — sacudiendo cabeza", confianza)
+            robot.sacudir_cabeza(repeticiones=2)
             robot.levantar_brazo_derecho()
-        else:
             robot.levantar_brazo_izquierdo()
+            time.sleep(SEGUNDOS_POSE)
+            robot.posicion_neutra()
 
-        time.sleep(SEGUNDOS_POSE)
-        robot.posicion_neutra()
+        elif evento == "rostro_detectado" and identidad in IDENTIDADES_CONOCIDAS:
+            logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
+            robot.levantar_brazo_derecho()
+            time.sleep(SEGUNDOS_POSE)
+            robot.posicion_neutra()
 
         mensaje.ack()
 

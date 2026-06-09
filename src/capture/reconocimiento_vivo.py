@@ -1,6 +1,4 @@
-"""
-Reconocimiento en vivo con integración a Google Cloud Pub/Sub.
-"""
+"""Live face recognition with Google Cloud Pub/Sub integration."""
 
 from __future__ import annotations
 
@@ -14,21 +12,28 @@ import cv2
 import numpy as np
 from google.cloud import pubsub_v1
 
-from model_loader import load_modelo_binario
+from cloud_notifier import notify_unknown
+from model_loader import load_modelo
 from stream_capture import connect_stream, prepare_frame
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_RUTA_PESOS_DEFAULT = _PROJECT_ROOT / "models" / "detection" / "modelo_binario_pesos.weights.h5"
+_MODEL_PATH_DEFAULT = _PROJECT_ROOT / "models" / "detection" / "modelo_tpi.keras"
 
-# Configuración de Google Cloud
 PROJECT_ID = "project-ac5c4157-56cb-4920-98f"
 TOPIC_ID = "rapiro-robot-events"
 
+# {index: label} must match training class_indices: {desconocido:0, luciano:1, paola:2}
+CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
+
+COOLDOWN_KNOWN_S = 5.0
+COOLDOWN_UNKNOWN_S = 30.0
+
 
 def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Clasificación binaria en vivo con Pub/Sub.")
-    p.add_argument("--pesos", type=Path, default=_RUTA_PESOS_DEFAULT)
-    p.add_argument("--umbral", type=float, default=0.5)
+    p = argparse.ArgumentParser(description="Multiclass face recognition with Pub/Sub.")
+    p.add_argument("--modelo", type=Path, default=_MODEL_PATH_DEFAULT)
+    p.add_argument("--umbral_confianza", type=float, default=0.6,
+                   help="Minimum confidence to accept a prediction (0-1).")
     p.add_argument("--source", default=None)
     return p.parse_args()
 
@@ -39,26 +44,24 @@ def main() -> None:
     if source is not None and str(source).isdigit():
         source = int(source)
 
-    print("Iniciando cliente de Pub/Sub...")
+    print("Starting Pub/Sub client...")
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
-    print("Cargando arquitectura y pesos...")
-    modelo = load_modelo_binario(args.pesos)
-    
+    print("Loading model...")
+    modelo = load_modelo(args.modelo)
+
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
-    nombres = {0: "Luciano", 1: "Paola"}
-    umbral = args.umbral
 
-    print("Conectando cámara...")
+    print("Connecting camera...")
     cap, src = connect_stream(source)
-    print(f"Fuente: {src}")
-    print("Q para salir.")
+    print(f"Source: {src}")
+    print("Press Q to quit.")
 
-    ultimo_envio = 0.0
-    cooldown_segundos = 5.0
+    ultimo_envio_conocido = 0.0
+    ultimo_envio_desconocido = 0.0
 
     try:
         while True:
@@ -73,7 +76,7 @@ def main() -> None:
             )
 
             for (x, y, w, h) in rostros:
-                rostro_recortado = frame[y : y + h, x : x + w]
+                rostro_recortado = frame[y: y + h, x: x + w]
 
                 img = cv2.resize(rostro_recortado, (96, 96))
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -81,38 +84,57 @@ def main() -> None:
                 img_array = np.expand_dims(img_array, axis=0)
 
                 prediccion = modelo.predict(img_array, verbose=0)
-                probabilidad = float(prediccion[0][0])
+                clase_idx = int(np.argmax(prediccion[0]))
+                confianza = float(prediccion[0][clase_idx])
+                nombre = CLASSES[clase_idx]
 
-                if probabilidad < umbral:
-                    nombre = nombres[0]
-                    confianza = (1 - probabilidad) * 100
-                    color = (0, 255, 0)
-                else:
-                    nombre = nombres[1]
-                    confianza = probabilidad * 100
-                    color = (255, 0, 0)
+                es_desconocido = clase_idx == 0
+                confianza_pct = confianza * 100
 
+                color = (0, 0, 255) if es_desconocido else (0, 255, 0)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
-                texto = f"{nombre} {confianza:.0f}%"
-                cv2.putText(frame, texto, (x + 5, y - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                cv2.putText(
+                    frame,
+                    f"{nombre} {confianza_pct:.0f}%",
+                    (x + 5, y - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (255, 255, 255),
+                    2,
+                )
 
                 ahora = time.time()
-                if (ahora - ultimo_envio) > cooldown_segundos:
-                    payload = {
-                        "evento": "rostro_detectado",
-                        "identidad": nombre,
-                        "confianza": round(confianza, 2),
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    }
-                    data_bytes = json.dumps(payload).encode("utf-8")
-                    
-                    try:
-                        publisher.publish(topic_path, data=data_bytes)
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] ☁️ ¡Alerta enviada a Pub/Sub! Detectado: {nombre}")
-                        ultimo_envio = ahora
-                    except Exception as e:
-                        print(f"Error al enviar a la nube: {e}")
+
+                if es_desconocido:
+                    if (ahora - ultimo_envio_desconocido) > COOLDOWN_UNKNOWN_S:
+                        ultimo_envio_desconocido = ahora
+                        payload = {
+                            "evento": "desconocido_detectado",
+                            "confianza": round(confianza_pct, 2),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                        try:
+                            publisher.publish(topic_path, data=json.dumps(payload).encode())
+                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Unknown detected — triggering alert.")
+                        except Exception as e:
+                            print(f"[ERROR] Pub/Sub: {e}")
+
+                        notify_unknown(rostro_recortado, confianza_pct)
+                else:
+                    if (ahora - ultimo_envio_conocido) > COOLDOWN_KNOWN_S:
+                        ultimo_envio_conocido = ahora
+                        payload = {
+                            "evento": "rostro_detectado",
+                            "identidad": nombre,
+                            "confianza": round(confianza_pct, 2),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                        try:
+                            publisher.publish(topic_path, data=json.dumps(payload).encode())
+                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Detected: {nombre}")
+                        except Exception as e:
+                            print(f"[ERROR] Pub/Sub: {e}")
 
             cv2.imshow("RAPIRO - Vision Artificial", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -120,6 +142,7 @@ def main() -> None:
     finally:
         cap.release()
         cv2.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()

@@ -8,11 +8,14 @@ import serial
 logger = logging.getLogger(__name__)
 
 # IDs de servo — ajustar si el cableado del RAPIRO es distinto
+SERVO_CABEZA = 0
 SERVO_HOMBRO_DERECHO = 2
 SERVO_HOMBRO_IZQUIERDO = 6
 
 ANGULO_NEUTRO = 90
 ANGULO_BRAZO_ARRIBA = 150
+ANGULO_CABEZA_IZQUIERDA = 60
+ANGULO_CABEZA_DERECHA = 120
 
 
 class RAPIROController:
@@ -26,6 +29,15 @@ class RAPIROController:
         self.ser.write(f"S{servo_id},{angulo}\n".encode("ascii"))
         self.ser.flush()
         time.sleep(0.05)
+
+    def sacudir_cabeza(self, repeticiones: int = 2) -> None:
+        logger.info("Acción → sacudir cabeza (no)")
+        for _ in range(repeticiones):
+            self._enviar(SERVO_CABEZA, ANGULO_CABEZA_IZQUIERDA)
+            time.sleep(0.3)
+            self._enviar(SERVO_CABEZA, ANGULO_CABEZA_DERECHA)
+            time.sleep(0.3)
+        self._enviar(SERVO_CABEZA, ANGULO_NEUTRO)
 
     def levantar_brazo_derecho(self) -> None:
         logger.info("Acción → levantar brazo derecho")
