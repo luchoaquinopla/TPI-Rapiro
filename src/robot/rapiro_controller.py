@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # IDs de servo — ajustar si el cableado del RAPIRO es distinto
 SERVO_CABEZA = 0
 SERVO_HOMBRO_DERECHO = 2
-SERVO_HOMBRO_IZQUIERDO = 6
+SERVO_HOMBRO_IZQUIERDO = 5
 
 ANGULO_NEUTRO = 90
 ANGULO_BRAZO_ARRIBA = 150
