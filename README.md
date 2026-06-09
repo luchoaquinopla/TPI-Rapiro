@@ -12,25 +12,26 @@ Universidad de la Cuenca del Plata
 rapiro_project/
 │
 ├── data/
-│   ├── wider_face/       # Dataset detección de rostros
-│   ├── lfw/              # Dataset Labeled Faces in the Wild
+│   ├── lfw/              # Dataset Labeled Faces in the Wild (clase "desconocido")
 │   └── own_dataset/      # Fotos propias por persona (una carpeta por persona)
 │
 ├── models/
-│   └── detection/        # Pesos del clasificador binario (.h5 / .weights.h5)
+│   └── detection/
+│       └── modelo_tpi.keras   # Clasificador multiclase entrenado en Colab (Keras 3)
 │
 ├── src/
 │   ├── capture/
 │   │   ├── stream_capture.py      # Captura OpenCV: webcam local + IP Webcam
 │   │   ├── dataset_generator.py   # Generador de dataset por persona
-│   │   ├── model_loader.py        # Carga de modelos Keras 2/3
-│   │   └── reconocimiento_vivo.py # Clasificación binaria en tiempo real
+│   │   ├── model_loader.py        # Carga de modelo Keras con load_model()
+│   │   ├── cloud_notifier.py      # Alertas: Cloud Storage + Firestore + Gmail
+│   │   └── reconocimiento_vivo.py # Clasificación multiclase en tiempo real
 │   ├── networks/         # Arquitectura y entrenamiento de redes
 │   ├── robot/
 │   │   ├── rapiro_controller.py  # Control de servos via serial UART
 │   │   ├── subscriber.py         # Subscriber de Pub/Sub (corre en la Raspberry Pi)
 │   │   └── test_servos.py        # Prueba manual de servos
-│   └── cloud/            # Integración GCP (Pub/Sub, Firestore)
+│   └── cloud/            # Integración GCP
 │
 ├── tests/                # Pruebas unitarias e integración
 ├── notebooks/            # Experimentación en Jupyter/Colab
@@ -105,13 +106,35 @@ Controles: **Espacio/P** para pausar · **Q** para salir.
 
 ### Reconocimiento en vivo (`reconocimiento_vivo.py`)
 
+Clasificador **multiclase** con tres clases: `desconocido` (0) · `luciano` (1) · `paola` (2).  
+Entrenado en Google Colab con dataset propio + LFW crowd (clase desconocido).
+
 ```bash
-# Usando pesos por defecto (models/detection/modelo_binario_pesos.weights.h5)
+# Usando modelo por defecto (models/detection/modelo_tpi.keras)
 python src/capture/reconocimiento_vivo.py
 
-# Con pesos y umbral personalizados
-python src/capture/reconocimiento_vivo.py --pesos models/detection/mis_pesos.h5 --umbral 0.45
+# Con modelo alternativo
+python src/capture/reconocimiento_vivo.py --modelo models/detection/otro_modelo.keras
 ```
+
+**Cooldowns de publicación a Pub/Sub:**
+
+| Evento | Cooldown |
+|---|---|
+| Persona conocida detectada | 5 segundos |
+| Persona desconocida detectada | 30 segundos |
+
+Cuando se detecta un desconocido, además de publicar en Pub/Sub se ejecuta automáticamente `cloud_notifier.notify_unknown()`.
+
+### Notificaciones de desconocidos (`cloud_notifier.py`)
+
+Al detectar una persona desconocida el sistema:
+
+1. **Sube la imagen del rostro** a Google Cloud Storage (`gs://rapiro-detecciones/desconocidos/<timestamp>.jpg`)
+2. **Guarda el registro** en Firestore (colección `detecciones_desconocidos`) con timestamp, confianza e imagen URL
+3. **Envía un email HTML** vía Gmail SMTP con la imagen del rostro embebida y link directo a Cloud Storage
+
+Requiere las siguientes variables de entorno (ver sección Variables de entorno).
 
 ### Módulo robot (`src/robot/`)
 
@@ -130,12 +153,12 @@ Google Cloud Pub/Sub
 
 **Lógica de respuesta:**
 
-| Identidad detectada | Acción |
+| Evento recibido | Acción del RAPIRO |
 |---|---|
-| Persona conocida (`Luciano`) | Levanta brazo derecho |
-| Persona desconocida | Levanta brazo izquierdo |
+| `rostro_detectado` (persona conocida) | Levanta brazo derecho · 3 s · posición neutra |
+| `desconocido_detectado` | Sacude la cabeza (no × 2) · levanta ambos brazos · 3 s · posición neutra |
 
-El robot mantiene la pose 3 segundos y vuelve a posición neutra.
+El movimiento de cabeza usa el servo `SERVO_CABEZA = 0` (ajustar si el cableado es distinto).
 
 #### Dependencias (instalar en la Raspberry Pi)
 
@@ -163,9 +186,12 @@ Esto mueve el brazo derecho, vuelve a neutro, mueve el izquierdo y vuelve a neut
 
 Si el servo incorrecto se mueve, editar `rapiro_controller.py`:
 ```python
+SERVO_CABEZA           = 0   # servo de rotación de cabeza (izquierda/derecha)
 SERVO_HOMBRO_DERECHO   = 2   # cambiar al ID correcto
 SERVO_HOMBRO_IZQUIERDO = 6   # cambiar al ID correcto
 ANGULO_BRAZO_ARRIBA    = 150  # ajustar el ángulo de elevación
+ANGULO_CABEZA_IZQUIERDA = 60  # ángulo de giro izquierdo para el "no"
+ANGULO_CABEZA_DERECHA   = 120 # ángulo de giro derecho para el "no"
 ```
 
 Para encontrar el ID correcto, descomentar el loop de barrido en `test_servos.py`.
@@ -191,12 +217,21 @@ python src/robot/subscriber.py
 ## Variables de entorno
 
 Crear un archivo `.env` en la raíz del proyecto:
+
 ```
-GCP_PROJECT_ID=tu-proyecto-gcp
-GCP_PUBSUB_TOPIC=rapiro-events
-GCP_FIRESTORE_COLLECTION=detections
-RAPIRO_SERIAL_PORT=COM3        # Windows: COM3, Linux: /dev/ttyUSB0
-CAMERA_STREAM_URL=http://192.168.X.X:8080/video
+# Google Cloud
+GOOGLE_APPLICATION_CREDENTIALS=infrastructure/keys/gcp-key.json
+GCS_BUCKET_NAME=rapiro-detecciones
+
+# Gmail — requiere App Password (no la contraseña normal)
+# Generala en: myaccount.google.com → Seguridad → Contraseñas de aplicación
+GMAIL_USER=tu@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+GMAIL_TO=tu@gmail.com
+
+# Cámara (opcional — se auto-detecta si no se define)
+# CAMERA_SOURCE=0
+# CAMERA_SOURCE=http://192.168.1.x:8080/video
 ```
 
 ---
@@ -205,36 +240,67 @@ CAMERA_STREAM_URL=http://192.168.X.X:8080/video
 
 ```
 Cámara (webcam local o IP Webcam)
-        ↓
+        │
+        ▼
 OpenCV — captura frames
-        ↓
+        │
+        ▼
 Haar Cascade — detecta rostro → bounding box
-        ↓
-CNN binaria — clasifica: conocido / desconocido
-        ↓
-Google Cloud Pub/Sub  ──────────────────────────────┐
-        ↓                                            ↓
-  Cloud Function                           Raspberry Pi (RAPIRO)
-  → persiste en Firestore                  subscriber.py
-                                                     ↓
-                                           RAPIROController
-                                                     ↓
-                                           Serial UART → Shield Arduino
-                                                     ↓
-                                      Conocido → brazo derecho
-                                    Desconocido → brazo izquierdo
+        │
+        ▼
+CNN multiclase (softmax) — clasifica: desconocido / luciano / paola
+        │
+        ├── CONOCIDO (cooldown 5 s)
+        │       │
+        │       ▼
+        │   Pub/Sub → Raspberry Pi → brazo derecho
+        │
+        └── DESCONOCIDO (cooldown 30 s)
+                │
+                ▼
+            Pub/Sub ──────────────────────────────────┐
+                                                      ▼
+            Cloud Storage ← sube imagen JPG     Raspberry Pi
+                │                                     │
+                ▼                                     ▼
+            Firestore ← guarda URL + metadata   sacude cabeza (no)
+                │                               levanta ambos brazos
+                ▼
+            Gmail ← envía email HTML con imagen embebida
 ```
 
 ### Diagrama de secuencia
 
+**Flujo — persona conocida:**
+
 ```
-PC                  Pub/Sub (GCP)       Raspberry Pi        Arduino Shield
+PC                    Pub/Sub           Raspberry Pi       Arduino Shield
  │                       │                    │                    │
- │── publica evento ─────▶                    │                    │
- │                       │── entrega msg ────▶│                    │
- │                       │                    │── "S2,150\n" ─────▶│
- │                       │                    │                    │── mueve servo
- │                       │                    │   (espera 3 seg)   │
- │                       │                    │── "S2,90\n" ───────▶│
- │                       │                    │                    │── posición neutra
+ │ detecta rostro        │                    │                    │
+ │── rostro_detectado ──►│                    │                    │
+ │                       │── entrega msg ────►│                    │
+ │                       │                    │── S2,150\n ───────►│ brazo derecho arriba
+ │                       │                    │   (3 s)            │
+ │                       │                    │── S2,90\n ────────►│ posición neutra
+```
+
+**Flujo — persona desconocida:**
+
+```
+PC               Pub/Sub     Cloud Storage    Firestore    Gmail    Raspberry Pi    Arduino Shield
+ │                  │               │              │          │           │                │
+ │ detecta desc.    │               │              │          │           │                │
+ │── sube imagen ──────────────────►│              │          │           │                │
+ │                  │               │── URL ───────►│          │           │                │
+ │── envía email ─────────────────────────────────────────────►│           │                │
+ │── desconocido_detectado ────────►│              │          │           │                │
+ │                  │── entrega ───────────────────────────────────────────►│                │
+ │                  │               │              │          │           │── S0,60\n ────►│ cabeza izq
+ │                  │               │              │          │           │── S0,120\n ───►│ cabeza der (×2)
+ │                  │               │              │          │           │── S0,90\n ────►│ cabeza centro
+ │                  │               │              │          │           │── S2,150\n ───►│ brazo der arriba
+ │                  │               │              │          │           │── S6,150\n ───►│ brazo izq arriba
+ │                  │               │              │          │           │   (3 s)        │
+ │                  │               │              │          │           │── S2,90\n ────►│
+ │                  │               │              │          │           │── S6,90\n ────►│ posición neutra
 ```
