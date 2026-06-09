@@ -224,3 +224,17 @@ Google Cloud Pub/Sub  ───────────────────�
                                       Conocido → brazo derecho
                                     Desconocido → brazo izquierdo
 ```
+
+### Diagrama de secuencia
+
+```
+PC                  Pub/Sub (GCP)       Raspberry Pi        Arduino Shield
+ │                       │                    │                    │
+ │── publica evento ─────▶                    │                    │
+ │                       │── entrega msg ────▶│                    │
+ │                       │                    │── "S2,150\n" ─────▶│
+ │                       │                    │                    │── mueve servo
+ │                       │                    │   (espera 3 seg)   │
+ │                       │                    │── "S2,90\n" ───────▶│
+ │                       │                    │                    │── posición neutra
+```
