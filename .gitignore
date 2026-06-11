@@ -5,6 +5,7 @@ env/
 
 # Variables de entorno reales (nunca subir)
 .env
+.venv
 
 # Modelos entrenados (pesados, subir por separado)
 models/**/*.h5

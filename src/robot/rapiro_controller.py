@@ -24,9 +24,12 @@ class RAPIROController:
         time.sleep(2)  # el Arduino hace reset al abrir el puerto serial
         logger.info("RAPIRO conectado en %s a %d baud", puerto, baud)
 
-    def _enviar(self, servo_id: int, angulo: int) -> None:
+    def _enviar(self, servo_id: int, angulo: int, tiempo_decimas: int = 5) -> None:
         angulo = max(0, min(180, angulo))
-        self.ser.write(f"S{servo_id},{angulo}\n".encode("ascii"))
+        # Formato estándar Rapiro: #PS[ID]A[Ángulo]T[Tiempo]\r
+        # ID: 2 dígitos, Ángulo: 3 dígitos, Tiempo: 3 dígitos (en décimas de segundo, ej: 005 = 0.5s)
+        cmd = f"#PS{servo_id:02d}A{angulo:03d}T{tiempo_decimas:03d}\r"
+        self.ser.write(cmd.encode("ascii"))
         self.ser.flush()
         time.sleep(0.05)
 
