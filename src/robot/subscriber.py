@@ -50,12 +50,14 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
 
         if evento == "desconocido_detectado":
             logger.info("Desconocido detectado (%.0f%%) — sacudiendo cabeza", confianza)
+            robot.luz_roja()
             robot.sacudir_cabeza(repeticiones=2)
             time.sleep(SEGUNDOS_POSE)
             robot.posicion_neutra()
 
         elif evento == "rostro_detectado" and identidad_normalizada in IDENTIDADES_CONOCIDAS:
             logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
+            robot.luz_verde()
             robot.levantar_brazo_derecho()
             time.sleep(SEGUNDOS_POSE)
             robot.posicion_neutra()

@@ -16,6 +16,7 @@ ANGULO_NEUTRO = 90
 ANGULO_BRAZO_ARRIBA = 150
 ANGULO_CABEZA_IZQUIERDA = 60
 ANGULO_CABEZA_DERECHA = 120
+LUZ_TRANSICION_DECIMAS = 5
 
 
 class RAPIROController:
@@ -29,9 +30,25 @@ class RAPIROController:
         # Formato estándar Rapiro: #PS[ID]A[Ángulo]T[Tiempo]\r
         # ID: 2 dígitos, Ángulo: 3 dígitos, Tiempo: 3 dígitos (en décimas de segundo, ej: 005 = 0.5s)
         cmd = f"#PS{servo_id:02d}A{angulo:03d}T{tiempo_decimas:03d}\r"
+        self._enviar_comando(cmd)
+
+    def _enviar_comando(self, cmd: str) -> None:
         self.ser.write(cmd.encode("ascii"))
         self.ser.flush()
         time.sleep(0.05)
+
+    def cambiar_luz(self, rojo: int, verde: int, azul: int, tiempo_decimas: int = LUZ_TRANSICION_DECIMAS) -> None:
+        rojo = max(0, min(255, rojo))
+        verde = max(0, min(255, verde))
+        azul = max(0, min(255, azul))
+        logger.info("AcciÃ³n â†’ cambiar luz RGB (%d, %d, %d)", rojo, verde, azul)
+        self._enviar_comando(f"#PR{rojo:03d}G{verde:03d}B{azul:03d}T{tiempo_decimas:03d}\r")
+
+    def luz_roja(self) -> None:
+        self.cambiar_luz(255, 0, 0)
+
+    def luz_verde(self) -> None:
+        self.cambiar_luz(0, 255, 0)
 
     def sacudir_cabeza(self, repeticiones: int = 2) -> None:
         logger.info("Acción → sacudir cabeza (no)")
