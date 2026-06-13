@@ -26,7 +26,7 @@ TOPIC_ID = "rapiro-robot-events"
 CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
 
 # segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email
-INITIAL_RECOGNITION_DELAY_S = 1.0
+INITIAL_RECOGNITION_DELAY_S = 15.0
 COOLDOWN_KNOWN_S = 25.0
 COOLDOWN_UNKNOWN_S = 60.0
 
@@ -77,8 +77,7 @@ def main() -> None:
     # timestamps del último envío para aplicar cooldown por tipo de evento
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
-    primer_rostro_detectado_en: float | None = None
-    primer_envio_realizado = False
+    primer_envio_habilitado_en = time.time() + INITIAL_RECOGNITION_DELAY_S
 
     try:
         while True:
@@ -93,9 +92,6 @@ def main() -> None:
             rostros = face_cascade.detectMultiScale(
                 gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100)
             )
-
-            if len(rostros) == 0 and not primer_envio_realizado:
-                primer_rostro_detectado_en = None
 
             for (x, y, w, h) in rostros:
                 rostro_recortado = frame[y: y + h, x: x + w]
@@ -147,25 +143,18 @@ def main() -> None:
 
                 ahora = time.time()
 
-                if not primer_envio_realizado:
-                    if primer_rostro_detectado_en is None:
-                        primer_rostro_detectado_en = ahora
-
-                    tiempo_detectando = ahora - primer_rostro_detectado_en
-                    if tiempo_detectando < INITIAL_RECOGNITION_DELAY_S:
-                        restante = INITIAL_RECOGNITION_DELAY_S - tiempo_detectando
-                        cv2.putText(
-                            frame,
-                            f"Clasificando en {restante:.0f}s",
-                            (x, y + h + 25),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.6,
-                            color,
-                            2,
-                        )
-                        continue
-
-                    primer_envio_realizado = True
+                if ahora < primer_envio_habilitado_en:
+                    restante = primer_envio_habilitado_en - ahora
+                    cv2.putText(
+                        frame,
+                        f"Clasificando en {restante:.0f}s",
+                        (x, y + h + 25),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        color,
+                        2,
+                    )
+                    continue
 
                 if es_desconocido:
                     if (ahora - ultimo_envio_desconocido) > COOLDOWN_UNKNOWN_S:

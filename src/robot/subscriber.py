@@ -50,8 +50,6 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
         if evento == "desconocido_detectado":
             logger.info("Desconocido detectado (%.0f%%) — sacudiendo cabeza", confianza)
             robot.sacudir_cabeza(repeticiones=2)
-            robot.levantar_brazo_derecho()
-            robot.levantar_brazo_izquierdo()
             time.sleep(SEGUNDOS_POSE)
             robot.posicion_neutra()
 
