@@ -127,11 +127,11 @@ def capturar_rostros(
     print("\n--- INICIO DE CAPTURA DE ROSTROS ---")
     if max_fotos == 100:
         print("-> Fase 1/4: Rostro Normal (sin accesorios, gira la cabeza despacio)")
-    print("Presione la tecla ESPACIO en la cámara para pausar/reanudar o Q para salir.")
+    print("Presione la tecla ESPACIO en la ventana de la cámara para INICIAR la captura.")
 
     contador = inicio
     guardadas_sesion = 0
-    pausado = False
+    pausado = True
     ultima_guardada = 0.0
     intervalo_seg = intervalo_ms / 1000.0
     ultimo_pauso_fase = -1  # Rastrea a qué cantidad de fotos pausamos por cambio de fase
