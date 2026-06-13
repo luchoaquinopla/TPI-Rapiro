@@ -26,7 +26,7 @@ TOPIC_ID = "rapiro-robot-events"
 CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
 
 # segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email
-INITIAL_RECOGNITION_DELAY_S = 15.0
+INITIAL_RECOGNITION_DELAY_S = 10.0  # tiempo de gracia al iniciar el programa para no enviar alertas por detecciones iniciales
 COOLDOWN_KNOWN_S = 25.0
 COOLDOWN_UNKNOWN_S = 60.0
 

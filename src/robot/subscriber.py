@@ -35,7 +35,7 @@ PUERTO_SERIAL = os.getenv("RAPIRO_PORT", "/dev/ttyAMA0")
 BAUD_RATE     = int(os.getenv("RAPIRO_BAUD", "57600"))
 
 # Identidades que activan el brazo derecho (personas conocidas)
-IDENTIDADES_CONOCIDAS: set[str] = {"Luciano"}
+IDENTIDADES_CONOCIDAS: set[str] = {"luciano", "paola"}
 
 SEGUNDOS_POSE = 3.0
 
@@ -46,6 +46,7 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
         evento    = data.get("evento", "")
         identidad = data.get("identidad", "")
         confianza = data.get("confianza", 0.0)
+        identidad_normalizada = str(identidad).strip().lower()
 
         if evento == "desconocido_detectado":
             logger.info("Desconocido detectado (%.0f%%) — sacudiendo cabeza", confianza)
@@ -53,7 +54,7 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
             time.sleep(SEGUNDOS_POSE)
             robot.posicion_neutra()
 
-        elif evento == "rostro_detectado" and identidad in IDENTIDADES_CONOCIDAS:
+        elif evento == "rostro_detectado" and identidad_normalizada in IDENTIDADES_CONOCIDAS:
             logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
             robot.levantar_brazo_derecho()
             time.sleep(SEGUNDOS_POSE)
