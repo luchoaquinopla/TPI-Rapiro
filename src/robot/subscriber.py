@@ -76,7 +76,12 @@ def main() -> None:
     cliente = pubsub_v1.SubscriberClient()
     ruta_suscripcion = cliente.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
 
-    streaming_pull = cliente.subscribe(ruta_suscripcion, callback=lambda m: _procesar_mensaje(m, robot))
+    flow_control = pubsub_v1.types.FlowControl(max_messages=1)
+    streaming_pull = cliente.subscribe(
+        ruta_suscripcion,
+        callback=lambda m: _procesar_mensaje(m, robot),
+        flow_control=flow_control,
+    )
     logger.info("Escuchando en %s ...", ruta_suscripcion)
 
     def _apagar(sig: int, _frame: object) -> None:

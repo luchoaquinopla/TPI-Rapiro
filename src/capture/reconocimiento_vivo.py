@@ -27,6 +27,7 @@ CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
 
 # segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email
 INITIAL_RECOGNITION_DELAY_S = 10.0  # tiempo de gracia al iniciar el programa para no enviar alertas por detecciones iniciales
+COOLDOWN_GLOBAL_S = 25.0
 COOLDOWN_KNOWN_S = 25.0
 COOLDOWN_UNKNOWN_S = 60.0
 
@@ -75,6 +76,7 @@ def main() -> None:
     print("Press Q to quit.")
 
     # timestamps del último envío para aplicar cooldown por tipo de evento
+    ultimo_envio_global = 0.0
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
     primer_envio_habilitado_en = time.time() + INITIAL_RECOGNITION_DELAY_S
@@ -156,8 +158,12 @@ def main() -> None:
                     )
                     continue
 
+                if (ahora - ultimo_envio_global) <= COOLDOWN_GLOBAL_S:
+                    continue
+
                 if es_desconocido:
                     if (ahora - ultimo_envio_desconocido) > COOLDOWN_UNKNOWN_S:
+                        ultimo_envio_global = ahora
                         ultimo_envio_desconocido = ahora
                         payload = {
                             "evento": "desconocido_detectado",
@@ -174,6 +180,7 @@ def main() -> None:
                         notify_unknown(rostro_recortado, confianza_pct)
                 else:
                     if (ahora - ultimo_envio_conocido) > COOLDOWN_KNOWN_S:
+                        ultimo_envio_global = ahora
                         ultimo_envio_conocido = ahora
                         payload = {
                             "evento": "rostro_detectado",
