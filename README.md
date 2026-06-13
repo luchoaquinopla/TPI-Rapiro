@@ -91,7 +91,26 @@ capture_loop()
 capture_loop("http://192.168.1.5:8080/video")
 ```
 
-### Generador de dataset (`dataset_generator.py`)
+### Generador de dataset (`dataset_generator.py` y `dataset_generator_df.py`)
+
+El proyecto cuenta con dos generadores de dataset dependiendo del modelo a utilizar:
+
+#### 1. Generador para modelo DeepFace (Recomendado)
+Este script utiliza **MediaPipe** para una detección de rostros robusta y está preparado para crear un dataset de alta calidad resistente a variaciones con accesorios. Captura un total de **100 fotos** en 4 fases automáticas (25 fotos por fase):
+1. **Rostro Normal**: Sin accesorios, girando levemente la cabeza en distintas direcciones (arriba, abajo, lados), haciendo diferentes expresiones faciales (serio, sonriendo, muecas) y variando la distancia a la cámara (acercándose y alejándose).
+2. **Anteojos**: Con anteojos puestos, repitiendo movimientos leves y cambios de distancia.
+3. **Gorra**: Con gorra, asegurando buena iluminación para que los ojos no queden en sombra oscura.
+4. **Capucha**: Con capucha, enfocándose en que el modelo aprenda a reconocer tus facciones internas (ojos, nariz, boca) independientemente del contorno de tu cabeza.
+
+```bash
+# Ejecutar el generador automático de 4 fases para "luciano"
+python src/deepface/dataset_generator_df.py luciano
+```
+
+Guarda recortes de rostros en la carpeta `data/deepface_db/<persona>/`. El script se pausará automáticamente entre fases para darte tiempo a ponerte el accesorio; pulsa la tecla **Espacio** para continuar.
+
+#### 2. Generador para modelo clásico (CNN Keras)
+Genera el dataset para la red convolucional clásica.
 
 ```bash
 # Captura 400 fotos de "luciano" (default)
@@ -102,7 +121,7 @@ python src/capture/dataset_generator.py gonzalo --max-fotos 200 --intervalo-ms 3
 ```
 
 Guarda recortes de rostros (96×96 px) en `data/own_dataset/<persona>/`.  
-Controles: **Espacio/P** para pausar · **Q** para salir.
+Controles generales: **Espacio/P** para pausar · **Q** para salir.
 
 ### Reconocimiento en vivo (`reconocimiento_vivo.py`)
 
