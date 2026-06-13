@@ -10,6 +10,7 @@ import os
 import pickle
 import sys
 import time
+from collections import Counter, deque
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,6 +52,11 @@ UMBRAL_RECOMENDADO = 0.40
 # Segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email (según tu última configuración)
 COOLDOWN_KNOWN_S = 25.0
 COOLDOWN_UNKNOWN_S = 60.0
+
+# Voting buffer: número de frames consecutivos para estabilizar la identidad
+VOTING_BUFFER_SIZE = 10
+# Mínimo de frames en el buffer antes de aplicar el voto (evita decisiones con muy pocos datos)
+VOTING_MIN_FRAMES = 5
 
 
 def compute_cosine_distance(a: list[float] | np.ndarray, b: list[float] | np.ndarray) -> float:
@@ -258,6 +264,9 @@ def main() -> None:
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
 
+    # Voting buffers por índice de detección (cara 0, cara 1, …)
+    vote_buffers: dict[int, deque[str]] = {}
+
     try:
         while True:
             ret, frame = cap.read()
@@ -271,8 +280,14 @@ def main() -> None:
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = face_detector.process(rgb_frame)
 
+            # Limpiar buffers de caras que ya no están en escena
+            n_detections = len(results.detections) if results.detections else 0
+            for idx in list(vote_buffers.keys()):
+                if idx >= n_detections:
+                    del vote_buffers[idx]
+
             if results.detections:
-                for detection in results.detections:
+                for face_idx, detection in enumerate(results.detections):
                     bbox = detection.location_data.relative_bounding_box
                     x = int(bbox.xmin * w_frame)
                     y = int(bbox.ymin * h_frame)
@@ -295,6 +310,15 @@ def main() -> None:
                     nombre, confianza_pct = identificar_rostro(
                         rostro_recortado, db_embeddings, MODEL_NAME, umbral
                     )
+
+                    # Voting buffer: acumular resultados y tomar el más frecuente
+                    if face_idx not in vote_buffers:
+                        vote_buffers[face_idx] = deque(maxlen=VOTING_BUFFER_SIZE)
+                    vote_buffers[face_idx].append(nombre)
+
+                    buf = vote_buffers[face_idx]
+                    if len(buf) >= VOTING_MIN_FRAMES:
+                        nombre = Counter(buf).most_common(1)[0][0]
 
                     es_desconocido = (nombre == "desconocido")
                     color = (0, 0, 255) if es_desconocido else (0, 255, 0)
