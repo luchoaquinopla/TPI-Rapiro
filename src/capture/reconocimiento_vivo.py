@@ -26,24 +26,34 @@ TOPIC_ID = "rapiro-robot-events"
 CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
 
 # segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email
-COOLDOWN_KNOWN_S = 5.0
-COOLDOWN_UNKNOWN_S = 30.0
+INITIAL_RECOGNITION_DELAY_S = 1.0
+COOLDOWN_KNOWN_S = 25.0
+COOLDOWN_UNKNOWN_S = 60.0
 
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Multiclass face recognition with Pub/Sub.")
     p.add_argument("--modelo", type=Path, default=_MODEL_PATH_DEFAULT)
-    p.add_argument("--umbral_confianza", type=float, default=0.6,
-                   help="Minimum confidence to accept a prediction (0-1).")
+    p.add_argument(
+        "--umbral_confianza",
+        type=float,
+        default=0.60,
+        help="Confianza mínima para aceptar una predicción como válida (0-1). "
+             "Si la CNN no supera este umbral, el rostro se clasifica como desconocido.",
+    )
     p.add_argument("--source", default=None)
     return p.parse_args()
 
 
 def main() -> None:
     args = _parse_args()
+    umbral = args.umbral_confianza  # ← ahora sí se usa
+
     source = args.source
     if source is not None and str(source).isdigit():
         source = int(source)
+
+    print(f"Umbral de confianza: {umbral:.0%}")
 
     # cliente que publica mensajes al topic de GCP
     print("Starting Pub/Sub client...")
@@ -67,6 +77,8 @@ def main() -> None:
     # timestamps del último envío para aplicar cooldown por tipo de evento
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
+    primer_rostro_detectado_en: float | None = None
+    primer_envio_realizado = False
 
     try:
         while True:
@@ -82,6 +94,9 @@ def main() -> None:
                 gray, scaleFactor=1.1, minNeighbors=5, minSize=(100, 100)
             )
 
+            if len(rostros) == 0 and not primer_envio_realizado:
+                primer_rostro_detectado_en = None
+
             for (x, y, w, h) in rostros:
                 rostro_recortado = frame[y: y + h, x: x + w]
 
@@ -95,8 +110,17 @@ def main() -> None:
                 prediccion = modelo.predict(img_array, verbose=0)
                 clase_idx = int(np.argmax(prediccion[0]))
                 confianza = float(prediccion[0][clase_idx])
-                nombre = CLASSES[clase_idx]
 
+                # ── FIX UMBRAL ──────────────────────────────────────────────
+                # Si la confianza de la mejor clase no supera el umbral,
+                # el sistema no se arriesga a confundir identidades:
+                # fuerza la clasificación como desconocido.
+                # Antes este argumento se parseaba pero nunca se aplicaba.
+                if confianza < umbral:
+                    clase_idx = 0  # clase desconocido
+                # ────────────────────────────────────────────────────────────
+
+                nombre = CLASSES[clase_idx]
                 es_desconocido = clase_idx == 0
                 confianza_pct = confianza * 100
 
@@ -104,9 +128,16 @@ def main() -> None:
                 color = (0, 0, 255) if es_desconocido else (0, 255, 0)
                 cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                 cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
+
+                # si cayó por umbral bajo, lo indica en el overlay
+                if es_desconocido and confianza < umbral and clase_idx == 0:
+                    label = f"? {confianza_pct:.0f}%"
+                else:
+                    label = f"{nombre} {confianza_pct:.0f}%"
+
                 cv2.putText(
                     frame,
-                    f"{nombre} {confianza_pct:.0f}%",
+                    label,
                     (x + 5, y - 12),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.5,
@@ -115,6 +146,26 @@ def main() -> None:
                 )
 
                 ahora = time.time()
+
+                if not primer_envio_realizado:
+                    if primer_rostro_detectado_en is None:
+                        primer_rostro_detectado_en = ahora
+
+                    tiempo_detectando = ahora - primer_rostro_detectado_en
+                    if tiempo_detectando < INITIAL_RECOGNITION_DELAY_S:
+                        restante = INITIAL_RECOGNITION_DELAY_S - tiempo_detectando
+                        cv2.putText(
+                            frame,
+                            f"Clasificando en {restante:.0f}s",
+                            (x, y + h + 25),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.6,
+                            color,
+                            2,
+                        )
+                        continue
+
+                    primer_envio_realizado = True
 
                 if es_desconocido:
                     if (ahora - ultimo_envio_desconocido) > COOLDOWN_UNKNOWN_S:
