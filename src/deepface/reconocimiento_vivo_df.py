@@ -20,6 +20,7 @@ import numpy as np
 # Agregar src/capture al path para reutilizar módulos
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(_PROJECT_ROOT / "src" / "capture"))
+os.environ.setdefault("DEEPFACE_HOME", str(_PROJECT_ROOT / "data" / "deepface_home"))
 
 from cloud_notifier import notify_unknown
 from google.cloud import pubsub_v1
