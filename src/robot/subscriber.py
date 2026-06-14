@@ -73,7 +73,7 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
             robot.luz_roja()
             robot.sacudir_cabeza(repeticiones=2)
             time.sleep(SEGUNDOS_POSE)
-            robot.posicion_neutra()
+            robot.movimiento_predefinido(0)
 
         elif evento == "rostro_detectado" and identidad_normalizada in IDENTIDADES_CONOCIDAS:
             logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
@@ -82,8 +82,6 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
             robot.luz_verde()
             time.sleep(SEGUNDOS_POSE)
             robot.movimiento_predefinido(0)
-            time.sleep(0.5)
-            robot.posicion_neutra()
 
         mensaje.ack()
 
