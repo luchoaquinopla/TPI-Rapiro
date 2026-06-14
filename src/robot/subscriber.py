@@ -78,13 +78,13 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
         elif evento == "rostro_detectado" and identidad_normalizada in IDENTIDADES_CONOCIDAS:
             logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
             robot.luz_verde()
-            time.sleep(2.0)
+            time.sleep(0.2)
             robot.accion_m9()
-            time.sleep(SEGUNDOS_POSE)
+            time.sleep(0.2)
             robot.luz_verde()
-            time.sleep(1.0)
+            time.sleep(SEGUNDOS_POSE)
             robot.movimiento_predefinido(0)
-            time.sleep(2.0)
+            time.sleep(0.5)
             robot.posicion_neutra()
 
         mensaje.ack()
