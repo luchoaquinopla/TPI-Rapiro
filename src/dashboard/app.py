@@ -44,6 +44,15 @@ def images(limit: int = 20):
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@app.delete("/api/clear")
+def clear():
+    try:
+        deleted = gcp_client.clear_all_events()
+        return {"deleted": deleted}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("DASHBOARD_PORT", "8080"))

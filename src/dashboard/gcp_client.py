@@ -86,6 +86,17 @@ def get_stats() -> dict:
     }
 
 
+def clear_all_events() -> int:
+    db = firestore.Client()
+    deleted = 0
+    for collection in (COLLECTION_EVENTS, COLLECTION_UNKNOWNS):
+        docs = db.collection(collection).stream()
+        for doc in docs:
+            doc.reference.delete()
+            deleted += 1
+    return deleted
+
+
 def get_unknown_images(limit: int = 20) -> list[dict]:
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)

@@ -37,18 +37,10 @@
       justify-content: space-between;
     }
 
-    header h1 {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
     header h1 span { color: var(--blue); }
 
-    #last-updated {
-      color: var(--muted);
-      font-size: 12px;
-    }
+    #last-updated { color: var(--muted); font-size: 12px; }
 
     main {
       max-width: 1280px;
@@ -56,7 +48,6 @@
       padding: 32px;
     }
 
-    /* ── Stats cards ── */
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -79,18 +70,12 @@
       margin-bottom: 8px;
     }
 
-    .card-value {
-      font-size: 36px;
-      font-weight: 700;
-      line-height: 1;
-    }
+    .card-value { font-size: 36px; font-weight: 700; line-height: 1; }
+    .card-value.green  { color: var(--green); }
+    .card-value.red    { color: var(--red); }
+    .card-value.blue   { color: var(--blue); }
+    .card-value.yellow { color: var(--yellow); }
 
-    .card-value.green { color: var(--green); }
-    .card-value.red   { color: var(--red); }
-    .card-value.blue  { color: var(--blue); }
-    .card-value.yellow{ color: var(--yellow); }
-
-    /* ── Section titles ── */
     .section-title {
       font-size: 13px;
       font-weight: 600;
@@ -100,7 +85,6 @@
       margin-bottom: 12px;
     }
 
-    /* ── Events table ── */
     .table-wrap {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -109,10 +93,7 @@
       margin-bottom: 32px;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
+    table { width: 100%; border-collapse: collapse; }
 
     thead th {
       background: var(--surface2);
@@ -128,14 +109,11 @@
     tbody tr {
       border-top: 1px solid var(--border);
       transition: background 0.15s;
+      cursor: pointer;
     }
 
     tbody tr:hover { background: var(--surface2); }
-
-    tbody td {
-      padding: 10px 16px;
-      vertical-align: middle;
-    }
+    tbody td { padding: 10px 16px; vertical-align: middle; }
 
     .badge {
       display: inline-block;
@@ -148,27 +126,10 @@
     .badge.known   { background: rgba(34,197,94,0.15); color: var(--green); }
     .badge.unknown { background: rgba(239,68,68,0.15);  color: var(--red); }
 
-    .conf-bar-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+    .conf-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .conf-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 3px; background: var(--blue); }
 
-    .conf-bar {
-      flex: 1;
-      height: 6px;
-      background: var(--surface2);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-
-    .conf-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      background: var(--blue);
-    }
-
-    /* ── Images grid ── */
     .images-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -182,26 +143,11 @@
       overflow: hidden;
     }
 
-    .img-card img {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      display: block;
-    }
+    .img-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .img-card-meta { padding: 8px 10px; font-size: 11px; color: var(--muted); }
 
-    .img-card-meta {
-      padding: 8px 10px;
-      font-size: 11px;
-      color: var(--muted);
-    }
+    .no-data { padding: 32px; text-align: center; color: var(--muted); }
 
-    .no-data {
-      padding: 32px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    /* ── Identity breakdown ── */
     .identity-list {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -210,43 +156,13 @@
       margin-bottom: 32px;
     }
 
-    .identity-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 6px 0;
-    }
+    .identity-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+    .identity-name { width: 100px; font-weight: 500; text-transform: capitalize; }
+    .identity-bar-wrap { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .identity-bar-fill { height: 100%; border-radius: 4px; background: var(--green); }
+    .identity-count { width: 36px; text-align: right; color: var(--muted); font-size: 12px; }
 
-    .identity-name {
-      width: 100px;
-      font-weight: 500;
-      text-transform: capitalize;
-    }
-
-    .identity-bar-wrap {
-      flex: 1;
-      height: 8px;
-      background: var(--surface2);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .identity-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-      background: var(--green);
-    }
-
-    .identity-count {
-      width: 36px;
-      text-align: right;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .refresh-btn {
-      background: var(--blue);
-      color: #fff;
+    .btn {
       border: none;
       border-radius: 6px;
       padding: 6px 14px;
@@ -255,7 +171,128 @@
       font-family: inherit;
     }
 
-    .refresh-btn:hover { opacity: 0.85; }
+    .btn-blue  { background: var(--blue);  color: #fff; }
+    .btn-red   { background: var(--red);   color: #fff; }
+    .btn:hover { opacity: 0.85; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      width: 90%;
+      max-width: 520px;
+      position: relative;
+      animation: pop 0.18s ease;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.92); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-close:hover { color: var(--text); }
+
+    .modal-robot {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-robot svg { width: 100px; height: 100px; }
+
+    .modal-title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .modal-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+    .modal-field {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .modal-field-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      min-width: 90px;
+    }
+
+    .modal-field-value { font-weight: 500; }
+
+    .modal-photo {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .modal-photo img { width: 100%; display: block; object-fit: cover; max-height: 260px; }
+
+    /* ── Confirm dialog ── */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .confirm-overlay.open { display: flex; }
+
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      width: 90%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .confirm-box h2 { font-size: 16px; margin-bottom: 8px; }
+    .confirm-box p  { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
   </style>
 </head>
 <body>
@@ -264,27 +301,25 @@
   <h1>RAPIRO <span>Dashboard</span></h1>
   <div style="display:flex;align-items:center;gap:12px;">
     <span id="last-updated">—</span>
-    <button class="refresh-btn" onclick="loadAll()">Actualizar</button>
+    <button class="btn btn-red" onclick="openConfirm()">Limpiar datos</button>
+    <button class="btn btn-blue" onclick="loadAll()">Actualizar</button>
   </div>
 </header>
 
 <main>
 
-  <!-- Stats -->
-  <div class="stats-grid" id="stats-grid">
-    <div class="card"><div class="card-label">Total eventos</div><div class="card-value blue" id="stat-total">—</div></div>
-    <div class="card"><div class="card-label">Conocidos</div><div class="card-value green" id="stat-known">—</div></div>
-    <div class="card"><div class="card-label">Desconocidos</div><div class="card-value red" id="stat-unknown">—</div></div>
+  <div class="stats-grid">
+    <div class="card"><div class="card-label">Total eventos</div><div class="card-value blue"   id="stat-total">—</div></div>
+    <div class="card"><div class="card-label">Conocidos</div>    <div class="card-value green"  id="stat-known">—</div></div>
+    <div class="card"><div class="card-label">Desconocidos</div> <div class="card-value red"    id="stat-unknown">—</div></div>
     <div class="card"><div class="card-label">Confianza promedio</div><div class="card-value yellow" id="stat-conf">—</div></div>
   </div>
 
-  <!-- Identity breakdown -->
   <div class="section-title">Detecciones por persona</div>
   <div class="identity-list" id="identity-list">
     <div class="no-data">Cargando...</div>
   </div>
 
-  <!-- Events table -->
   <div class="section-title">Últimos eventos</div>
   <div class="table-wrap">
     <table>
@@ -302,7 +337,6 @@
     </table>
   </div>
 
-  <!-- Images -->
   <div class="section-title">Imágenes de desconocidos</div>
   <div class="images-grid" id="images-grid">
     <div class="no-data">Cargando...</div>
@@ -310,13 +344,160 @@
 
 </main>
 
+<!-- Event modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div class="modal-robot" id="modal-robot"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+    <div class="modal-fields" id="modal-fields"></div>
+    <div id="modal-photo-wrap"></div>
+  </div>
+</div>
+
+<!-- Confirm clear -->
+<div class="confirm-overlay" id="confirm-overlay" onclick="closeConfirm(event)">
+  <div class="confirm-box">
+    <h2>¿Limpiar todos los datos?</h2>
+    <p>Se eliminarán todos los eventos de Firestore. Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-blue" onclick="closeConfirmDirect()">Cancelar</button>
+      <button class="btn btn-red"  onclick="clearData()">Sí, limpiar</button>
+    </div>
+  </div>
+</div>
+
 <script>
+  // ── Helpers ──────────────────────────────────────────────
   function fmtTs(iso) {
     if (!iso) return '—';
     const d = new Date(iso);
     return isNaN(d) ? iso : d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
   }
 
+  // ── Robot SVG ────────────────────────────────────────────
+  function robotSVG(color, happy) {
+    const eyeColor = color;
+    const mouth = happy
+      ? `<path d="M38 68 Q50 80 62 68" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M38 76 Q50 65 62 76" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    return `
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- body -->
+        <rect x="20" y="52" width="60" height="40" rx="8" fill="#2e3250"/>
+        <!-- neck -->
+        <rect x="43" y="46" width="14" height="10" rx="3" fill="#22263a"/>
+        <!-- head -->
+        <rect x="18" y="18" width="64" height="32" rx="10" fill="#22263a"/>
+        <!-- antenna -->
+        <line x1="50" y1="18" x2="50" y2="8" stroke="#7c85a2" stroke-width="2"/>
+        <circle cx="50" cy="6" r="3" fill="${eyeColor}"/>
+        <!-- eyes -->
+        <circle cx="36" cy="34" r="8" fill="#0f1117"/>
+        <circle cx="64" cy="34" r="8" fill="#0f1117"/>
+        <circle cx="36" cy="34" r="5" fill="${eyeColor}" opacity="0.9"/>
+        <circle cx="64" cy="34" r="5" fill="${eyeColor}" opacity="0.9"/>
+        <!-- eye glow -->
+        <circle cx="36" cy="34" r="5" fill="${eyeColor}" opacity="0.4" filter="url(#glow)"/>
+        <circle cx="64" cy="34" r="5" fill="${eyeColor}" opacity="0.4" filter="url(#glow)"/>
+        <!-- mouth -->
+        ${mouth}
+        <!-- arms -->
+        <rect x="4"  y="56" width="14" height="28" rx="6" fill="#2e3250"/>
+        <rect x="82" y="56" width="14" height="28" rx="6" fill="#2e3250"/>
+        <!-- chest light -->
+        <circle cx="50" cy="72" r="5" fill="${eyeColor}" opacity="0.7"/>
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+      </svg>`;
+  }
+
+  // ── Modal ─────────────────────────────────────────────────
+  let allEvents = [];
+
+  function openModal(idx) {
+    const e = allEvents[idx];
+    if (!e) return;
+
+    const isKnown = e.evento === 'rostro_detectado';
+    const color   = isKnown ? '#22c55e' : '#ef4444';
+    const happy   = isKnown;
+
+    document.getElementById('modal-robot').innerHTML = robotSVG(color, happy);
+    document.getElementById('modal-title').textContent = isKnown ? '✅ Persona conocida' : '🚨 Desconocido detectado';
+    document.getElementById('modal-title').style.color = color;
+    document.getElementById('modal-subtitle').textContent = isKnown
+      ? 'RAPIRO reconoció a esta persona.'
+      : 'RAPIRO no pudo identificar a esta persona.';
+
+    const pct = Math.min(e.confianza, 100);
+    document.getElementById('modal-fields').innerHTML = `
+      <div class="modal-field">
+        <span class="modal-field-label">Identidad</span>
+        <span class="modal-field-value" style="text-transform:capitalize">${e.identidad || '—'}</span>
+      </div>
+      <div class="modal-field">
+        <span class="modal-field-label">Confianza</span>
+        <span class="modal-field-value">${e.confianza}%</span>
+      </div>
+      <div class="modal-field">
+        <span class="modal-field-label">Timestamp</span>
+        <span class="modal-field-value" style="color:var(--muted);font-size:12px">${fmtTs(e.timestamp)}</span>
+      </div>
+    `;
+
+    const photoWrap = document.getElementById('modal-photo-wrap');
+    if (!isKnown && e.image_url) {
+      photoWrap.innerHTML = `
+        <div class="modal-photo">
+          <img src="${e.image_url}" alt="Foto del desconocido" onerror="this.parentElement.style.display='none'"/>
+        </div>`;
+    } else {
+      photoWrap.innerHTML = '';
+    }
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal(evt) {
+    if (evt.target === document.getElementById('modal-overlay')) closeModalDirect();
+  }
+
+  function closeModalDirect() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  // ── Confirm clear ─────────────────────────────────────────
+  function openConfirm() {
+    document.getElementById('confirm-overlay').classList.add('open');
+  }
+
+  function closeConfirm(evt) {
+    if (evt.target === document.getElementById('confirm-overlay')) closeConfirmDirect();
+  }
+
+  function closeConfirmDirect() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+  }
+
+  async function clearData() {
+    closeConfirmDirect();
+    try {
+      const r = await fetch('/api/clear', { method: 'DELETE' });
+      const d = await r.json();
+      alert(`Se eliminaron ${d.deleted} eventos.`);
+      loadAll();
+    } catch (err) {
+      alert('Error al limpiar: ' + err.message);
+    }
+  }
+
+  // ── Data loaders ──────────────────────────────────────────
   async function loadStats() {
     const r = await fetch('/api/stats');
     const d = await r.json();
@@ -351,22 +532,22 @@
 
   async function loadEvents() {
     const r = await fetch('/api/events?limit=50');
-    const events = await r.json();
+    allEvents = await r.json();
     const tbody = document.getElementById('events-body');
 
-    if (!events.length) {
+    if (!allEvents.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="no-data">Sin eventos.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = events.map(e => {
+    tbody.innerHTML = allEvents.map((e, idx) => {
       const isKnown = e.evento === 'rostro_detectado';
       const badge = isKnown
         ? '<span class="badge known">Conocido</span>'
         : '<span class="badge unknown">Desconocido</span>';
       const pct = Math.min(e.confianza, 100);
       return `
-        <tr>
+        <tr onclick="openModal(${idx})">
           <td>${badge}</td>
           <td style="text-transform:capitalize">${e.identidad || '—'}</td>
           <td>
@@ -376,8 +557,7 @@
             </div>
           </td>
           <td style="color:var(--muted);font-size:12px">${fmtTs(e.timestamp)}</td>
-        </tr>
-      `;
+        </tr>`;
     }).join('');
   }
 
