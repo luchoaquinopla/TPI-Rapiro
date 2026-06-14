@@ -337,10 +337,6 @@
     </table>
   </div>
 
-  <div class="section-title">Imágenes de desconocidos</div>
-  <div class="images-grid" id="images-grid">
-    <div class="no-data">Cargando...</div>
-  </div>
 
 </main>
 
@@ -583,7 +579,7 @@
 
   async function loadAll() {
     try {
-      await Promise.all([loadStats(), loadEvents(), loadImages()]);
+      await Promise.all([loadStats(), loadEvents()]);
       document.getElementById('last-updated').textContent =
         'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
     } catch (err) {
