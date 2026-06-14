@@ -18,9 +18,12 @@ import os
 import signal
 import time
 
+from dotenv import load_dotenv
 from google.cloud import pubsub_v1
 
 from rapiro_controller import RAPIROController
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,6 +36,9 @@ SUBSCRIPTION_ID = "rapiro-robot-events-sub"
 
 PUERTO_SERIAL = os.getenv("RAPIRO_PORT", "/dev/ttyAMA0")
 BAUD_RATE     = int(os.getenv("RAPIRO_BAUD", "57600"))
+
+if os.getenv("GOOGLE_APPLICATION_CREDENTIALS_RAPIRO"):
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.environ["GOOGLE_APPLICATION_CREDENTIALS_RAPIRO"]
 
 # Identidades que activan la accion M9 (personas conocidas)
 IDENTIDADES_CONOCIDAS: set[str] = {"gonzalo", "luciano", "paola"}
