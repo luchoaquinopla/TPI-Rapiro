@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAPIRO Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --text: #e2e8f0;
+      --muted: #7c85a2;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --yellow: #f59e0b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+    header h1 span { color: var(--blue); }
+
+    #last-updated { color: var(--muted); font-size: 12px; }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .card-value { font-size: 36px; font-weight: 700; line-height: 1; }
+    .card-value.green  { color: var(--green); }
+    .card-value.red    { color: var(--red); }
+    .card-value.blue   { color: var(--blue); }
+    .card-value.yellow { color: var(--yellow); }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      background: var(--surface2);
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    tbody tr {
+      border-top: 1px solid var(--border);
+      transition: background 0.15s;
+      cursor: pointer;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 16px; vertical-align: middle; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge.known   { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge.unknown { background: rgba(239,68,68,0.15);  color: var(--red); }
+
+    .conf-bar-wrap { display: flex; align-items: center; gap: 8px; }
+    .conf-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 3px; background: var(--blue); }
+
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .img-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .img-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; }
+    .img-card-meta { padding: 8px 10px; font-size: 11px; color: var(--muted); }
+
+    .no-data { padding: 32px; text-align: center; color: var(--muted); }
+
+    .identity-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+    }
+
+    .identity-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+    .identity-name { width: 100px; font-weight: 500; text-transform: capitalize; }
+    .identity-bar-wrap { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .identity-bar-fill { height: 100%; border-radius: 4px; background: var(--green); }
+    .identity-count { width: 36px; text-align: right; color: var(--muted); font-size: 12px; }
+
+    .btn {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-blue  { background: var(--blue);  color: #fff; }
+    .btn-red   { background: var(--red);   color: #fff; }
+    .btn:hover { opacity: 0.85; }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      width: 90%;
+      max-width: 520px;
+      position: relative;
+      animation: pop 0.18s ease;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.92); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px; right: 16px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .modal-close:hover { color: var(--text); }
+
+    .modal-robot {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 16px;
+    }
+
+    .modal-robot svg { width: 100px; height: 100px; }
+
+    .modal-title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .modal-subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .modal-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+
+    .modal-field {
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+
+    .modal-field-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      min-width: 90px;
+    }
+
+    .modal-field-value { font-weight: 500; }
+
+    .modal-photo {
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .modal-photo img { width: 100%; display: block; object-fit: cover; max-height: 260px; }
+
+    /* ── Confirm dialog ── */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .confirm-overlay.open { display: flex; }
+
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      width: 90%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .confirm-box h2 { font-size: 16px; margin-bottom: 8px; }
+    .confirm-box p  { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>RAPIRO <span>Dashboard</span></h1>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="last-updated">—</span>
+    <button class="btn btn-red" onclick="openConfirm()">Limpiar datos</button>
+    <button class="btn btn-blue" onclick="loadAll()">Actualizar</button>
+  </div>
+</header>
+
+<main>
+
+  <div class="stats-grid">
+    <div class="card"><div class="card-label">Total eventos</div><div class="card-value blue"   id="stat-total">—</div></div>
+    <div class="card"><div class="card-label">Conocidos</div>    <div class="card-value green"  id="stat-known">—</div></div>
+    <div class="card"><div class="card-label">Desconocidos</div> <div class="card-value red"    id="stat-unknown">—</div></div>
+    <div class="card"><div class="card-label">Confianza promedio</div><div class="card-value yellow" id="stat-conf">—</div></div>
+  </div>
+
+  <div class="section-title">Detecciones por persona</div>
+  <div class="identity-list" id="identity-list">
+    <div class="no-data">Cargando...</div>
+  </div>
+
+  <div class="section-title">Últimos eventos</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Identidad</th>
+          <th>Confianza</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="events-body">
+        <tr><td colspan="4" class="no-data">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+</main>
+
+<!-- Event modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    <div class="modal-robot" id="modal-robot"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-subtitle" id="modal-subtitle"></div>
+    <div class="modal-fields" id="modal-fields"></div>
+    <div id="modal-photo-wrap"></div>
+  </div>
+</div>
+
+<!-- Confirm clear -->
+<div class="confirm-overlay" id="confirm-overlay" onclick="closeConfirm(event)">
+  <div class="confirm-box">
+    <h2>¿Limpiar todos los datos?</h2>
+    <p>Se eliminarán todos los eventos de Firestore. Esta acción no se puede deshacer.</p>
+    <div class="confirm-actions">
+      <button class="btn btn-blue" onclick="closeConfirmDirect()">Cancelar</button>
+      <button class="btn btn-red"  onclick="clearData()">Sí, limpiar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────
+  function fmtTs(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d) ? iso : d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+  }
+
+  // ── Robot SVG ────────────────────────────────────────────
+  function robotSVG(color, happy) {
+    const eyeColor = color;
+    const mouth = happy
+      ? `<path d="M38 68 Q50 80 62 68" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M38 76 Q50 65 62 76" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    return `
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- body -->
+        <rect x="20" y="52" width="60" height="40" rx="8" fill="#2e3250"/>
+        <!-- neck -->
+        <rect x="43" y="46" width="14" height="10" rx="3" fill="#22263a"/>
+        <!-- head -->
+        <rect x="18" y="18" width="64" height="32" rx="10" fill="#22263a"/>
+        <!-- antenna -->
+        <line x1="50" y1="18" x2="50" y2="8" stroke="#7c85a2" stroke-width="2"/>
+        <circle cx="50" cy="6" r="3" fill="${eyeColor}"/>
+        <!-- eyes -->
+        <circle cx="36" cy="34" r="8" fill="#0f1117"/>
+        <circle cx="64" cy="34" r="8" fill="#0f1117"/>
+        <circle cx="36" cy="34" r="5" fill="${eyeColor}" opacity="0.9"/>
+        <circle cx="64" cy="34" r="5" fill="${eyeColor}" opacity="0.9"/>
+        <!-- eye glow -->
+        <circle cx="36" cy="34" r="5" fill="${eyeColor}" opacity="0.4" filter="url(#glow)"/>
+        <circle cx="64" cy="34" r="5" fill="${eyeColor}" opacity="0.4" filter="url(#glow)"/>
+        <!-- mouth -->
+        ${mouth}
+        <!-- arms -->
+        <rect x="4"  y="56" width="14" height="28" rx="6" fill="#2e3250"/>
+        <rect x="82" y="56" width="14" height="28" rx="6" fill="#2e3250"/>
+        <!-- chest light -->
+        <circle cx="50" cy="72" r="5" fill="${eyeColor}" opacity="0.7"/>
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+      </svg>`;
+  }
+
+  // ── Modal ─────────────────────────────────────────────────
+  let allEvents = [];
+
+  function openModal(idx) {
+    const e = allEvents[idx];
+    if (!e) return;
+
+    const isKnown = e.evento === 'rostro_detectado';
+    const color   = isKnown ? '#22c55e' : '#ef4444';
+    const happy   = isKnown;
+
+    document.getElementById('modal-robot').innerHTML = robotSVG(color, happy);
+    document.getElementById('modal-title').textContent = isKnown ? '✅ Persona conocida' : '🚨 Desconocido detectado';
+    document.getElementById('modal-title').style.color = color;
+    document.getElementById('modal-subtitle').textContent = isKnown
+      ? 'RAPIRO reconoció a esta persona.'
+      : 'RAPIRO no pudo identificar a esta persona.';
+
+    const pct = Math.min(e.confianza, 100);
+    document.getElementById('modal-fields').innerHTML = `
+      <div class="modal-field">
+        <span class="modal-field-label">Identidad</span>
+        <span class="modal-field-value" style="text-transform:capitalize">${e.identidad || '—'}</span>
+      </div>
+      <div class="modal-field">
+        <span class="modal-field-label">Confianza</span>
+        <span class="modal-field-value">${e.confianza}%</span>
+      </div>
+      <div class="modal-field">
+        <span class="modal-field-label">Timestamp</span>
+        <span class="modal-field-value" style="color:var(--muted);font-size:12px">${fmtTs(e.timestamp)}</span>
+      </div>
+    `;
+
+    const photoWrap = document.getElementById('modal-photo-wrap');
+    if (!isKnown && e.image_url) {
+      photoWrap.innerHTML = `
+        <div class="modal-photo">
+          <img src="${e.image_url}" alt="Foto del desconocido" onerror="this.parentElement.style.display='none'"/>
+        </div>`;
+    } else {
+      photoWrap.innerHTML = '';
+    }
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function closeModal(evt) {
+    if (evt.target === document.getElementById('modal-overlay')) closeModalDirect();
+  }
+
+  function closeModalDirect() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  // ── Confirm clear ─────────────────────────────────────────
+  function openConfirm() {
+    document.getElementById('confirm-overlay').classList.add('open');
+  }
+
+  function closeConfirm(evt) {
+    if (evt.target === document.getElementById('confirm-overlay')) closeConfirmDirect();
+  }
+
+  function closeConfirmDirect() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+  }
+
+  async function clearData() {
+    closeConfirmDirect();
+    try {
+      const r = await fetch('/api/clear', { method: 'DELETE' });
+      const d = await r.json();
+      alert(`Se eliminaron ${d.deleted} eventos.`);
+      loadAll();
+    } catch (err) {
+      alert('Error al limpiar: ' + err.message);
+    }
+  }
+
+  // ── Data loaders ──────────────────────────────────────────
+  async function loadStats() {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+
+    document.getElementById('stat-total').textContent   = d.total;
+    document.getElementById('stat-known').textContent   = d.conocidos;
+    document.getElementById('stat-unknown').textContent = d.desconocidos;
+    document.getElementById('stat-conf').textContent    = d.confianza_promedio + '%';
+
+    const identities = d.por_identidad || {};
+    const names = Object.keys(identities);
+    const max = Math.max(...Object.values(identities), 1);
+    const el = document.getElementById('identity-list');
+
+    if (names.length === 0) {
+      el.innerHTML = '<div class="no-data">Sin detecciones de personas conocidas.</div>';
+      return;
+    }
+
+    el.innerHTML = names
+      .sort((a, b) => identities[b] - identities[a])
+      .map(name => `
+        <div class="identity-row">
+          <span class="identity-name">${name}</span>
+          <div class="identity-bar-wrap">
+            <div class="identity-bar-fill" style="width:${(identities[name]/max*100).toFixed(1)}%"></div>
+          </div>
+          <span class="identity-count">${identities[name]}</span>
+        </div>
+      `).join('');
+  }
+
+  async function loadEvents() {
+    const r = await fetch('/api/events?limit=50');
+    allEvents = await r.json();
+    const tbody = document.getElementById('events-body');
+
+    if (!allEvents.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="no-data">Sin eventos.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = allEvents.map((e, idx) => {
+      const isKnown = e.evento === 'rostro_detectado';
+      const badge = isKnown
+        ? '<span class="badge known">Conocido</span>'
+        : '<span class="badge unknown">Desconocido</span>';
+      const pct = Math.min(e.confianza, 100);
+      return `
+        <tr onclick="openModal(${idx})">
+          <td>${badge}</td>
+          <td style="text-transform:capitalize">${e.identidad || '—'}</td>
+          <td>
+            <div class="conf-bar-wrap">
+              <div class="conf-bar"><div class="conf-bar-fill" style="width:${pct}%"></div></div>
+              <span>${e.confianza}%</span>
+            </div>
+          </td>
+          <td style="color:var(--muted);font-size:12px">${fmtTs(e.timestamp)}</td>
+        </tr>`;
+    }).join('');
+  }
+
+  async function loadImages() {
+    const r = await fetch('/api/images?limit=20');
+    const images = await r.json();
+    const grid = document.getElementById('images-grid');
+
+    if (!images.length) {
+      grid.innerHTML = '<div class="no-data">Sin imágenes en el bucket.</div>';
+      return;
+    }
+
+    grid.innerHTML = images.map(img => `
+      <div class="img-card">
+        <a href="${img.url}" target="_blank">
+          <img src="${img.url}" alt="Desconocido" loading="lazy" onerror="this.style.display='none'" />
+        </a>
+        <div class="img-card-meta">${fmtTs(img.updated)}</div>
+      </div>
+    `).join('');
+  }
+
+  async function loadAll() {
+    try {
+      await Promise.all([loadStats(), loadEvents()]);
+      document.getElementById('last-updated').textContent =
+        'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
+    } catch (err) {
+      console.error('Error cargando datos:', err);
+    }
+  }
+
+  loadAll();
+  setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

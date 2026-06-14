@@ -5,15 +5,17 @@ env/
 
 # Variables de entorno reales (nunca subir)
 .env
+.venv
 
 # Modelos entrenados (pesados, subir por separado)
 models/**/*.h5
-models/**/*.keras
+
 
 # Datasets (pesados, no versionar)
 data/wider_face/
 data/lfw/
 data/own_dataset/
+data/deepface_home/
 
 # Python
 __pycache__/
@@ -33,6 +35,7 @@ __pycache__/
 infrastructure/terraform/.terraform/
 infrastructure/terraform/*.tfstate
 infrastructure/terraform/*.tfstate.backup
+infrastructure/keys/
 
 # Weights & Biases
 wandb/
