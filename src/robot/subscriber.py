@@ -34,7 +34,7 @@ SUBSCRIPTION_ID = "rapiro-robot-events-sub"
 PUERTO_SERIAL = os.getenv("RAPIRO_PORT", "/dev/ttyAMA0")
 BAUD_RATE     = int(os.getenv("RAPIRO_BAUD", "57600"))
 
-# Identidades que activan el brazo derecho (personas conocidas)
+# Identidades que activan la accion M9 (personas conocidas)
 IDENTIDADES_CONOCIDAS: set[str] = {"gonzalo", "luciano", "paola"}
 
 SEGUNDOS_POSE = 3.0
@@ -58,9 +58,7 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
         elif evento == "rostro_detectado" and identidad_normalizada in IDENTIDADES_CONOCIDAS:
             logger.info("Detectado: %s (%.0f%%)", identidad, confianza)
             robot.luz_verde()
-            robot.levantar_brazo_derecho()
-            time.sleep(SEGUNDOS_POSE)
-            robot.posicion_neutra()
+            robot.accion_m9()
 
         mensaje.ack()
 

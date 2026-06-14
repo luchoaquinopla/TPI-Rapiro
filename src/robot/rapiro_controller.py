@@ -37,6 +37,15 @@ class RAPIROController:
         self.ser.flush()
         time.sleep(0.05)
 
+    def movimiento_predefinido(self, movimiento_id: int) -> None:
+        if not 0 <= movimiento_id <= 9:
+            raise ValueError("El movimiento predefinido debe estar entre M0 y M9.")
+        logger.info("Accion -> M%d", movimiento_id)
+        self._enviar_comando(f"#M{movimiento_id}\r")
+
+    def accion_m9(self) -> None:
+        self.movimiento_predefinido(9)
+
     def cambiar_luz(self, rojo: int, verde: int, azul: int, tiempo_decimas: int = LUZ_TRANSICION_DECIMAS) -> None:
         rojo = max(0, min(255, rojo))
         verde = max(0, min(255, verde))
