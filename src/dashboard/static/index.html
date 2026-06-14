@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAPIRO Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --text: #e2e8f0;
+      --muted: #7c85a2;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --yellow: #f59e0b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    header h1 span { color: var(--blue); }
+
+    #last-updated {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px;
+    }
+
+    /* ── Stats cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .card-value {
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .card-value.green { color: var(--green); }
+    .card-value.red   { color: var(--red); }
+    .card-value.blue  { color: var(--blue); }
+    .card-value.yellow{ color: var(--yellow); }
+
+    /* ── Section titles ── */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Events table ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 32px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      background: var(--surface2);
+      padding: 10px 16px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    tbody tr {
+      border-top: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: var(--surface2); }
+
+    tbody td {
+      padding: 10px 16px;
+      vertical-align: middle;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge.known   { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge.unknown { background: rgba(239,68,68,0.15);  color: var(--red); }
+
+    .conf-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .conf-bar {
+      flex: 1;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .conf-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--blue);
+    }
+
+    /* ── Images grid ── */
+    .images-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .img-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .img-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
+    }
+
+    .img-card-meta {
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .no-data {
+      padding: 32px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    /* ── Identity breakdown ── */
+    .identity-list {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+    }
+
+    .identity-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 0;
+    }
+
+    .identity-name {
+      width: 100px;
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    .identity-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .identity-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--green);
+    }
+
+    .identity-count {
+      width: 36px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .refresh-btn {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .refresh-btn:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>RAPIRO <span>Dashboard</span></h1>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="last-updated">—</span>
+    <button class="refresh-btn" onclick="loadAll()">Actualizar</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="stats-grid">
+    <div class="card"><div class="card-label">Total eventos</div><div class="card-value blue" id="stat-total">—</div></div>
+    <div class="card"><div class="card-label">Conocidos</div><div class="card-value green" id="stat-known">—</div></div>
+    <div class="card"><div class="card-label">Desconocidos</div><div class="card-value red" id="stat-unknown">—</div></div>
+    <div class="card"><div class="card-label">Confianza promedio</div><div class="card-value yellow" id="stat-conf">—</div></div>
+  </div>
+
+  <!-- Identity breakdown -->
+  <div class="section-title">Detecciones por persona</div>
+  <div class="identity-list" id="identity-list">
+    <div class="no-data">Cargando...</div>
+  </div>
+
+  <!-- Events table -->
+  <div class="section-title">Últimos eventos</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Identidad</th>
+          <th>Confianza</th>
+          <th>Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="events-body">
+        <tr><td colspan="4" class="no-data">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Images -->
+  <div class="section-title">Imágenes de desconocidos</div>
+  <div class="images-grid" id="images-grid">
+    <div class="no-data">Cargando...</div>
+  </div>
+
+</main>
+
+<script>
+  function fmtTs(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return isNaN(d) ? iso : d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+  }
+
+  async function loadStats() {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+
+    document.getElementById('stat-total').textContent   = d.total;
+    document.getElementById('stat-known').textContent   = d.conocidos;
+    document.getElementById('stat-unknown').textContent = d.desconocidos;
+    document.getElementById('stat-conf').textContent    = d.confianza_promedio + '%';
+
+    const identities = d.por_identidad || {};
+    const names = Object.keys(identities);
+    const max = Math.max(...Object.values(identities), 1);
+    const el = document.getElementById('identity-list');
+
+    if (names.length === 0) {
+      el.innerHTML = '<div class="no-data">Sin detecciones de personas conocidas.</div>';
+      return;
+    }
+
+    el.innerHTML = names
+      .sort((a, b) => identities[b] - identities[a])
+      .map(name => `
+        <div class="identity-row">
+          <span class="identity-name">${name}</span>
+          <div class="identity-bar-wrap">
+            <div class="identity-bar-fill" style="width:${(identities[name]/max*100).toFixed(1)}%"></div>
+          </div>
+          <span class="identity-count">${identities[name]}</span>
+        </div>
+      `).join('');
+  }
+
+  async function loadEvents() {
+    const r = await fetch('/api/events?limit=50');
+    const events = await r.json();
+    const tbody = document.getElementById('events-body');
+
+    if (!events.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="no-data">Sin eventos.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = events.map(e => {
+      const isKnown = e.evento === 'rostro_detectado';
+      const badge = isKnown
+        ? '<span class="badge known">Conocido</span>'
+        : '<span class="badge unknown">Desconocido</span>';
+      const pct = Math.min(e.confianza, 100);
+      return `
+        <tr>
+          <td>${badge}</td>
+          <td style="text-transform:capitalize">${e.identidad || '—'}</td>
+          <td>
+            <div class="conf-bar-wrap">
+              <div class="conf-bar"><div class="conf-bar-fill" style="width:${pct}%"></div></div>
+              <span>${e.confianza}%</span>
+            </div>
+          </td>
+          <td style="color:var(--muted);font-size:12px">${fmtTs(e.timestamp)}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  async function loadImages() {
+    const r = await fetch('/api/images?limit=20');
+    const images = await r.json();
+    const grid = document.getElementById('images-grid');
+
+    if (!images.length) {
+      grid.innerHTML = '<div class="no-data">Sin imágenes en el bucket.</div>';
+      return;
+    }
+
+    grid.innerHTML = images.map(img => `
+      <div class="img-card">
+        <a href="${img.url}" target="_blank">
+          <img src="${img.url}" alt="Desconocido" loading="lazy" onerror="this.style.display='none'" />
+        </a>
+        <div class="img-card-meta">${fmtTs(img.updated)}</div>
+      </div>
+    `).join('');
+  }
+
+  async function loadAll() {
+    try {
+      await Promise.all([loadStats(), loadEvents(), loadImages()]);
+      document.getElementById('last-updated').textContent =
+        'Actualizado: ' + new Date().toLocaleTimeString('es-AR');
+    } catch (err) {
+      console.error('Error cargando datos:', err);
+    }
+  }
+
+  loadAll();
+  setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

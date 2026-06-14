@@ -263,6 +263,19 @@ resource "google_compute_firewall" "grafana" {
   target_tags   = ["grafana"]
 }
 
+resource "google_compute_firewall" "dashboard" {
+  name    = "allow-dashboard"
+  network = "default"
+
+  allow {
+    protocol = "tcp"
+    ports    = ["8080"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["grafana"]
+}
+
 # ─────────────────────────────────────────────
 # MONITORING
 # ─────────────────────────────────────────────
