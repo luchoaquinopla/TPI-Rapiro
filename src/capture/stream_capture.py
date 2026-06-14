@@ -99,10 +99,32 @@ def preprocess_frame(frame: np.ndarray) -> np.ndarray:
 
 
 def _apply_rotation(frame: np.ndarray) -> np.ndarray:
-    """Rota 90° si el frame está en horizontal (ancho > alto)."""
-    h, w = frame.shape[:2]
-    if w > h:
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    """
+    Aplica rotación al frame según la variable de entorno CAMERA_ROTATION.
+    Valores posibles:
+      - '0' o 'NONE': Sin rotación (útil para webcams normales).
+      - '90': Rota 90° en sentido horario.
+      - '180': Rota 180°.
+      - '270': Rota 270° (90° antihorario).
+      - 'AUTO' (por defecto): Rota 90° en sentido horario si el ancho es mayor que el alto (para el robot Rapiro).
+    """
+    rotation = os.getenv("CAMERA_ROTATION", "AUTO").strip().upper()
+    if rotation in ("0", "NONE"):
+        return frame
+
+    if rotation == "AUTO":
+        h, w = frame.shape[:2]
+        if w > h:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        return frame
+
+    if rotation == "90":
+        return cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+    elif rotation == "180":
+        return cv2.rotate(frame, cv2.ROTATE_180)
+    elif rotation == "270":
+        return cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
     return frame
 
 
