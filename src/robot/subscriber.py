@@ -81,6 +81,8 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
             time.sleep(1.0)
             robot.luz_verde()
             time.sleep(SEGUNDOS_POSE)
+            robot.movimiento_predefinido(0)
+            time.sleep(0.5)
             robot.posicion_neutra()
 
         mensaje.ack()
