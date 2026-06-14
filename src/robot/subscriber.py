@@ -35,7 +35,7 @@ PUERTO_SERIAL = os.getenv("RAPIRO_PORT", "/dev/ttyAMA0")
 BAUD_RATE     = int(os.getenv("RAPIRO_BAUD", "57600"))
 
 # Identidades que activan el brazo derecho (personas conocidas)
-IDENTIDADES_CONOCIDAS: set[str] = {"luciano", "paola"}
+IDENTIDADES_CONOCIDAS: set[str] = {"gonzalo", "luciano", "paola"}
 
 SEGUNDOS_POSE = 3.0
 
