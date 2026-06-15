@@ -44,7 +44,7 @@ _DB_PATH = _PROJECT_ROOT / "data" / "deepface_db"
 _CACHE_PATH = _DB_PATH / "embeddings_cache.pkl"
 
 # Configuración del modelo y métricas
-MODEL_NAME = "Facenet"  # Facenet utiliza 128 o 512 dimensiones
+MODEL_NAME = "ArcFace"  # Facenet utiliza 128 o 512 dimensiones
 DISTANCE_METRIC = "cosine"
 # Umbral recomendado de distancia de coseno para FaceNet en DeepFace:
 # Distancias menores a este umbral indican que es la misma persona.
@@ -53,6 +53,9 @@ UMBRAL_RECOMENDADO = 0.40
 # Segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email (según tu última configuración)
 COOLDOWN_KNOWN_S = 25.0
 COOLDOWN_UNKNOWN_S = 60.0
+
+INITIAL_DELAY_S = 7.0
+IDENTIDADES_IGNORADAS: set[str] = {"paola"}
 
 # Voting buffer: número de frames consecutivos para estabilizar la identidad
 VOTING_BUFFER_SIZE = 10
@@ -264,6 +267,7 @@ def main() -> None:
 
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
+    primer_envio_habilitado_en = time.time() + INITIAL_DELAY_S
 
     # Voting buffers por índice de detección (cara 0, cara 1, …)
     vote_buffers: dict[int, deque[str]] = {}
@@ -342,6 +346,16 @@ def main() -> None:
 
                     # Publicación a Pub/Sub y alertas en la nube con Cooldowns
                     ahora = time.time()
+
+                    if ahora < primer_envio_habilitado_en:
+                        restante = primer_envio_habilitado_en - ahora
+                        cv2.putText(frame, f"Iniciando en {restante:.0f}s", (x, y + h + 25),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                        continue
+
+                    if nombre in IDENTIDADES_IGNORADAS:
+                        continue
+
                     if not es_desconocido:
                         # Persona Conocida
                         if ahora - ultimo_envio_conocido >= COOLDOWN_KNOWN_S:
