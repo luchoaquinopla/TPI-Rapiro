@@ -31,10 +31,10 @@ def _upload_image(frame: np.ndarray, timestamp: str) -> tuple[str, str]:
     return public_url, blob_name
 
 
-def _save_firestore(timestamp: str, confianza: float, image_url: str, blob_name: str) -> None:
+def _save_firestore(ts_dt: datetime, confianza: float, image_url: str, blob_name: str) -> None:
     db = firestore.Client()
     db.collection(FIRESTORE_COLLECTION).add({
-        "timestamp": timestamp,
+        "timestamp": ts_dt,
         "confianza": round(confianza, 2),
         "image_url": image_url,
         "storage_path": blob_name,
@@ -99,7 +99,8 @@ def _send_email(image_url: str, confianza: float, timestamp: str, frame: np.ndar
 
 def notify_unknown(frame: np.ndarray, confianza: float) -> None:
     """Upload image to Cloud Storage, record in Firestore, and send Gmail alert."""
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts_dt = datetime.now(timezone.utc)
+    timestamp = ts_dt.strftime("%Y%m%d_%H%M%S")
     image_url = ""
     blob_name = ""
 
@@ -110,7 +111,7 @@ def notify_unknown(frame: np.ndarray, confianza: float) -> None:
         print(f"[ERROR] Cloud Storage: {e}")
 
     try:
-        _save_firestore(timestamp, confianza, image_url, blob_name)
+        _save_firestore(ts_dt, confianza, image_url, blob_name)
         print("[CLOUD] Metadata saved to Firestore.")
     except Exception as e:
         print(f"[ERROR] Firestore: {e}")
