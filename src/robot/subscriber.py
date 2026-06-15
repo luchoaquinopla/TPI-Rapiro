@@ -93,6 +93,7 @@ def _procesar_mensaje(mensaje: pubsub_v1.subscriber.message.Message, robot: RAPI
 def main() -> None:
     logger.info("Iniciando subscriber RAPIRO...")
     robot = RAPIROController(puerto=PUERTO_SERIAL, baud=BAUD_RATE)
+    robot_cerrado = False
 
     cliente = pubsub_v1.SubscriberClient()
     ruta_suscripcion = cliente.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
@@ -105,9 +106,19 @@ def main() -> None:
     )
     logger.info("Escuchando en %s ...", ruta_suscripcion)
 
+    def _cerrar_robot_en_m0() -> None:
+        nonlocal robot_cerrado
+        if robot_cerrado:
+            return
+        logger.info("Enviando RAPIRO a M0 antes de cerrar...")
+        robot.movimiento_predefinido(0)
+        time.sleep(0.5)
+        robot.cerrar(enviar_neutra=False)
+        robot_cerrado = True
+
     def _apagar(sig: int, _frame: object) -> None:
         streaming_pull.cancel()
-        robot.cerrar()
+        _cerrar_robot_en_m0()
 
     signal.signal(signal.SIGINT, _apagar)
     signal.signal(signal.SIGTERM, _apagar)
@@ -116,7 +127,7 @@ def main() -> None:
         streaming_pull.result()
     except Exception as exc:
         logger.error("Subscriber detenido: %s", exc)
-        robot.cerrar()
+        _cerrar_robot_en_m0()
 
 
 if __name__ == "__main__":
