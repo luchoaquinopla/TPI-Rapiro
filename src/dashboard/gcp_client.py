@@ -16,6 +16,11 @@ COLLECTION_UNKNOWNS = "detecciones_desconocidos"
 def _ts_to_iso(value: Any) -> str:
     if isinstance(value, datetime):
         return value.astimezone(timezone.utc).isoformat()
+    if isinstance(value, str) and len(value) == 15 and value[8] == "_":
+        try:
+            return datetime.strptime(value, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc).isoformat()
+        except ValueError:
+            pass
     return str(value) if value else ""
 
 
@@ -38,6 +43,8 @@ def get_recent_events(limit: int = 50) -> list[dict]:
     results = []
     for doc in known:
         d = doc.to_dict()
+        if d.get("evento") == "desconocido_detectado":
+            continue
         results.append({
             "id": doc.id,
             "evento": d.get("evento", ""),
