@@ -81,6 +81,7 @@ class RAPIROController:
         self._enviar(SERVO_HOMBRO_DERECHO, ANGULO_NEUTRO)
         self._enviar(SERVO_HOMBRO_IZQUIERDO, ANGULO_NEUTRO)
 
-    def cerrar(self) -> None:
-        self.posicion_neutra()
+    def cerrar(self, enviar_neutra: bool = True) -> None:
+        if enviar_neutra:
+            self.posicion_neutra()
         self.ser.close()

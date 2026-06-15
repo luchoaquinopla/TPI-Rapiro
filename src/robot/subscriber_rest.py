@@ -146,6 +146,7 @@ def _procesar_payload(data: dict, robot: RAPIROController) -> None:
 
 def _apagar(_sig: int, _frame: object) -> None:
     global _running
+    logger.info("Cierre solicitado. RAPIRO ira a M0 antes de cerrar...")
     _running = False
 
 
@@ -182,8 +183,13 @@ def main() -> None:
             except requests.RequestException as exc:
                 logger.error("Error Pub/Sub REST: %s", exc)
                 time.sleep(5.0)
+    except KeyboardInterrupt:
+        logger.info("Subscriber interrumpido por teclado.")
     finally:
-        robot.cerrar()
+        logger.info("Enviando RAPIRO a M0 antes de cerrar...")
+        robot.movimiento_predefinido(0)
+        time.sleep(0.5)
+        robot.cerrar(enviar_neutra=False)
 
 
 if __name__ == "__main__":
