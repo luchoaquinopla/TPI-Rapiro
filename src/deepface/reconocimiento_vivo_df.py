@@ -325,13 +325,16 @@ def main() -> None:
                     if len(buf) >= VOTING_MIN_FRAMES:
                         nombre = Counter(buf).most_common(1)[0][0]
 
+                    if nombre in IDENTIDADES_IGNORADAS:
+                        continue
+
                     es_desconocido = (nombre == "desconocido")
                     color = (0, 0, 255) if es_desconocido else (0, 255, 0)
-                    
+
                     # Dibujar bounding box y etiqueta
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                     cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
-                    
+
                     label = f"{nombre.capitalize()} {confianza_pct:.0f}%"
                     cv2.putText(
                         frame,
@@ -351,9 +354,6 @@ def main() -> None:
                         restante = primer_envio_habilitado_en - ahora
                         cv2.putText(frame, f"Iniciando en {restante:.0f}s", (x, y + h + 25),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
-                        continue
-
-                    if nombre in IDENTIDADES_IGNORADAS:
                         continue
 
                     if not es_desconocido:
