@@ -14,7 +14,7 @@ models/**/*.h5
 # Datasets (pesados, no versionar)
 data/wider_face/
 data/lfw/
-data/own_dataset/
+
 data/deepface_home/
 
 # Python
