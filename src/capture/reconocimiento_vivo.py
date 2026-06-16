@@ -23,7 +23,7 @@ PROJECT_ID = "project-ac5c4157-56cb-4920-98f"
 TOPIC_ID = "rapiro-robot-events"
 
 # debe coincidir con class_indices del entrenamiento: {desconocido:0, luciano:1, paola:2}
-CLASSES = {0: "desconocido", 1: "luciano", 2: "paola"}
+CLASSES = {0: "desconocido", 1: "gonzalo", 2: "luciano"}
 
 # segundos mínimos entre publicaciones para no saturar Pub/Sub ni el email
 INITIAL_RECOGNITION_DELAY_S = 10.0  # tiempo de gracia al iniciar el programa para no enviar alertas por detecciones iniciales
