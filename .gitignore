@@ -16,7 +16,7 @@ data/wider_face/
 data/lfw/
 
 data/deepface_home/
-
+data/own_dataset/
 # Python
 __pycache__/
 *.py[cod]

@@ -1,12 +1,12 @@
 """
-Generador de dataset para la clase DESCONOCIDO.
+Generador de dataset para LUCIANO — 600 fotos adicionales.
 
-Captura 120 imágenes por persona y las guarda en data/own_dataset/desconocido/.
-Guía al usuario con instrucciones de iluminación y poses en pantalla.
+Guarda en data/own_dataset/luciano/ continuando la enumeracion existente.
+10 fases de 60 fotos con diversidad de poses, accesorios e iluminacion.
 
 Uso:
-  python src/desconocidos/dataset_generator_desconocido.py --persona "Juan"
-  python src/desconocidos/dataset_generator_desconocido.py --persona "Maria" --source 1
+  python src/desconocidos/dataset_generator_desconocido.py
+  python src/desconocidos/dataset_generator_desconocido.py --source 1
 """
 
 from __future__ import annotations
@@ -24,40 +24,83 @@ sys.path.append(str(_PROJECT_ROOT / "src" / "capture"))
 
 from stream_capture import connect_stream, prepare_frame
 
-_OUTPUT_DIR = _PROJECT_ROOT / "data" / "own_dataset" / "desconocido"
-_WINDOW = "Dataset Desconocido"
+_PERSONA = "luciano"
+_OUTPUT_DIR = _PROJECT_ROOT / "data" / "own_dataset" / _PERSONA
+_WINDOW = "Dataset Luciano"
 _FACE_SIZE = (96, 96)
-_MAX_FOTOS = 120
+_MAX_FOTOS = 600
 _INTERVALO_MS = 250
 
-# 4 fases de 30 fotos cada una.
+# 10 fases de 60 fotos cada una.
 # (limite, label_pantalla, instruccion_pose, instruccion_terminal, label_pausa)
 _FASES: list[tuple[int, str, str, str, str]] = [
     (
-        30,
-        "FASE 1/4 — FRONTAL",
+        60,
+        "FASE 1/10 — FRONTAL",
         "Mira directo a la camara. Expresion natural.",
-        "-> FASE 2/4: SEMI-PERFIL DERECHO. Gira la cabeza ~45 grados a la derecha.",
+        "-> FASE 2/10: SEMI-PERFIL DERECHO. Gira la cabeza ~45 grados a la derecha.",
         "GIRA A LA DERECHA ~45 grados! Pulsa Espacio",
     ),
     (
-        60,
-        "FASE 2/4 — SEMI-PERFIL DERECHO",
+        120,
+        "FASE 2/10 — SEMI-PERFIL DERECHO",
         "Manten la cabeza girada ~45 grados a la derecha.",
-        "-> FASE 3/4: SEMI-PERFIL IZQUIERDO. Gira la cabeza ~45 grados a la izquierda.",
+        "-> FASE 3/10: SEMI-PERFIL IZQUIERDO. Gira la cabeza ~45 grados a la izquierda.",
         "GIRA A LA IZQUIERDA ~45 grados! Pulsa Espacio",
     ),
     (
-        90,
-        "FASE 3/4 — SEMI-PERFIL IZQUIERDO",
+        180,
+        "FASE 3/10 — SEMI-PERFIL IZQUIERDO",
         "Manten la cabeza girada ~45 grados a la izquierda.",
-        "-> FASE 4/4: ARRIBA / ABAJO. Inclina la cabeza ~30 grados arriba y luego abajo, alternando.",
+        "-> FASE 4/10: ARRIBA / ABAJO. Inclina la cabeza ~30 grados arriba y abajo, alternando.",
         "INCLINA ARRIBA Y ABAJO! Pulsa Espacio",
     ),
     (
-        120,
-        "FASE 4/4 — ARRIBA / ABAJO",
+        240,
+        "FASE 4/10 — ARRIBA / ABAJO",
         "Inclina la cabeza ~30 grados arriba y luego abajo, alternando lento.",
+        "-> FASE 5/10: PONGASE LA GORRA. Frontal y semi-perfiles.",
+        "PONGASE LA GORRA! Pulsa Espacio",
+    ),
+    (
+        300,
+        "FASE 5/10 — CON GORRA: frontal y lados",
+        "Con gorra. Alterna frontal, semi-perfil derecho e izquierdo.",
+        "-> FASE 6/10: CON GORRA — angulos extremos. Bien de lado, arriba y abajo.",
+        "ANGULOS EXTREMOS CON GORRA! Pulsa Espacio",
+    ),
+    (
+        360,
+        "FASE 6/10 — CON GORRA: angulos extremos",
+        "Con gorra. Gira bien de lado, arriba y abajo lentamente.",
+        "-> FASE 7/10: PONGASE LA CAPUCHA. Todos los angulos lentamente.",
+        "PONGASE LA CAPUCHA! Pulsa Espacio",
+    ),
+    (
+        420,
+        "FASE 7/10 — CON CAPUCHA",
+        "Con capucha. Varia todos los angulos lentamente.",
+        "-> FASE 8/10: PONGASE LOS ANTEOJOS (saca la capucha). Todos los angulos.",
+        "PONGASE LOS ANTEOJOS! Pulsa Espacio",
+    ),
+    (
+        480,
+        "FASE 8/10 — CON ANTEOJOS",
+        "Con anteojos. Varia frontal, semi-perfiles y arriba/abajo.",
+        "-> FASE 9/10: ANTEOJOS + GORRA combinados. Todos los angulos.",
+        "ANTEOJOS + GORRA! Pulsa Espacio",
+    ),
+    (
+        540,
+        "FASE 9/10 — ANTEOJOS + GORRA",
+        "Con anteojos y gorra. Varia todos los angulos lentamente.",
+        "-> FASE 10/10: ILUMINACION LATERAL. Posiciona una luz a un costado y varia lento.",
+        "ILUMINACION LATERAL! Pulsa Espacio",
+    ),
+    (
+        600,
+        "FASE 10/10 — ILUMINACION LATERAL",
+        "Luz lateral. Gira la cabeza lentamente en todos los angulos.",
         "",
         "",
     ),
@@ -74,9 +117,9 @@ _CONSEJOS_LUZ = [
 
 
 def _siguiente_indice(carpeta: Path) -> int:
-    patron = re.compile(r"^desconocido_(\d+)$")
+    patron = re.compile(rf"^{re.escape(_PERSONA)}_(\d+)$")
     max_idx = -1
-    for path in carpeta.glob("desconocido_*.jpg"):
+    for path in carpeta.glob(f"{_PERSONA}_*.jpg"):
         m = patron.match(path.stem)
         if m:
             max_idx = max(max_idx, int(m.group(1)))
@@ -131,17 +174,14 @@ def _draw_overlay(
                     cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 220, 200), 1, cv2.LINE_AA)
 
 
-def capturar(persona: str, source: int | str | None = None) -> int:
-    persona = persona.strip()
-    if not persona:
-        raise ValueError("El nombre no puede estar vacío.")
+def capturar(source: int | str | None = None) -> int:
 
     _OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     inicio = _siguiente_indice(_OUTPUT_DIR)
     objetivo = inicio + _MAX_FOTOS
 
     if inicio > 0:
-        print(f"Ya hay {inicio} fotos en 'desconocido/'. Continuando desde {inicio:04d}.")
+        print(f"Ya hay {inicio} fotos de '{_PERSONA}/'. Continuando desde {inicio:04d}.")
 
     import mediapipe as mp
     mp_face = mp.solutions.face_detection
@@ -151,8 +191,8 @@ def capturar(persona: str, source: int | str | None = None) -> int:
     cap, src = connect_stream(source)
     print(f"Fuente: {src}")
     print(f"Salida: {_OUTPUT_DIR}")
-    print(f"\nPersona: {persona}")
-    print("-> FASE 1/4: FRONTAL. Mira directo a la camara con expresion natural.")
+    print(f"\nPersona: {_PERSONA}")
+    print("-> FASE 1/10: FRONTAL. Mira directo a la camara con expresion natural.")
     print("Pulsa ESPACIO en la ventana para iniciar la captura.")
 
     contador = inicio
@@ -218,7 +258,7 @@ def capturar(persona: str, source: int | str | None = None) -> int:
                         rostro = frame[y1:y2, x1:x2]
                         if rostro.size > 0:
                             rostro = cv2.resize(rostro, _FACE_SIZE)
-                            nombre_arch = _OUTPUT_DIR / f"desconocido_{contador:04d}.jpg"
+                            nombre_arch = _OUTPUT_DIR / f"{_PERSONA}_{contador:04d}.jpg"
                             cv2.imwrite(str(nombre_arch), rostro)
                             contador += 1
                             guardadas += 1
@@ -229,7 +269,7 @@ def capturar(persona: str, source: int | str | None = None) -> int:
 
             _draw_overlay(
                 display,
-                persona=persona,
+                persona=_PERSONA,
                 guardadas=guardadas,
                 objetivo=_MAX_FOTOS,
                 pausado=pausado,
@@ -251,14 +291,13 @@ def capturar(persona: str, source: int | str | None = None) -> int:
         detector.close()
 
     print(f"\nListo: {guardadas} fotos guardadas en '{_OUTPUT_DIR}'")
-    print(f"Total en 'desconocido/': {contador} imagenes.")
+    print(f"Total en '{_PERSONA}/': {contador} imagenes.")
     return guardadas
 
 
 def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Captura 120 fotos de una persona desconocida.")
-    p.add_argument("--persona", required=True, help="Nombre o etiqueta de la persona (solo para mostrar en pantalla).")
-    p.add_argument("--source", default=None, help="Cámara (índice o URL). Default: CAMERA_SOURCE del .env.")
+    p = argparse.ArgumentParser(description=f"Captura {_MAX_FOTOS} fotos adicionales de {_PERSONA}.")
+    p.add_argument("--source", default=None, help="Camara (indice o URL). Default: CAMERA_SOURCE del .env.")
     return p.parse_args()
 
 
@@ -267,4 +306,4 @@ if __name__ == "__main__":
     source = args.source
     if source is not None and str(source).isdigit():
         source = int(source)
-    capturar(args.persona, source=source)
+    capturar(source=source)
