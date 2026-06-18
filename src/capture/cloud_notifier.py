@@ -26,7 +26,6 @@ def _upload_image(frame: np.ndarray, timestamp: str) -> tuple[str, str]:
     _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
     blob.upload_from_string(buffer.tobytes(), content_type="image/jpeg")
 
-    # uniform bucket-level access — public URL via IAM, no ACL needed
     public_url = f"https://storage.googleapis.com/{BUCKET_NAME}/{blob_name}"
     return public_url, blob_name
 
@@ -48,7 +47,7 @@ def _send_email(image_url: str, confianza: float, timestamp: str, frame: np.ndar
     gmail_to = os.getenv("GMAIL_TO", gmail_user)
 
     if not gmail_user or not gmail_password:
-        print("[WARN] Gmail not configured — skipping email.")
+        print("[WARN] Gmail no configurado — se omite el envío de email.")
         return
 
     readable_time = datetime.strptime(timestamp, "%Y%m%d_%H%M%S").strftime("%d/%m/%Y %H:%M:%S UTC")
@@ -85,7 +84,7 @@ def _send_email(image_url: str, confianza: float, timestamp: str, frame: np.ndar
     """
     msg.attach(MIMEText(html, "html"))
 
-    # attach face image inline
+    # adjuntar la imagen del rostro en línea
     _, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
     img_attachment = MIMEImage(buffer.tobytes(), _subtype="jpeg")
     img_attachment.add_header("Content-ID", "<rostro>")
@@ -98,7 +97,7 @@ def _send_email(image_url: str, confianza: float, timestamp: str, frame: np.ndar
 
 
 def notify_unknown(frame: np.ndarray, confianza: float) -> None:
-    """Upload image to Cloud Storage, record in Firestore, and send Gmail alert."""
+    """Sube la imagen a Cloud Storage, la registra en Firestore y envía una alerta por Gmail."""
     ts_dt = datetime.now(timezone.utc)
     timestamp = ts_dt.strftime("%Y%m%d_%H%M%S")
     image_url = ""
@@ -106,18 +105,18 @@ def notify_unknown(frame: np.ndarray, confianza: float) -> None:
 
     try:
         image_url, blob_name = _upload_image(frame, timestamp)
-        print(f"[CLOUD] Image uploaded: {image_url}")
+        print(f"[CLOUD] Imagen subida: {image_url}")
     except Exception as e:
         print(f"[ERROR] Cloud Storage: {e}")
 
     try:
         _save_firestore(ts_dt, confianza, image_url, blob_name)
-        print("[CLOUD] Metadata saved to Firestore.")
+        print("[CLOUD] Metadatos guardados en Firestore.")
     except Exception as e:
         print(f"[ERROR] Firestore: {e}")
 
     try:
         _send_email(image_url, confianza, timestamp, frame)
-        print("[CLOUD] Email sent.")
+        print("[CLOUD] Email enviado.")
     except Exception as e:
         print(f"[ERROR] Gmail: {e}")

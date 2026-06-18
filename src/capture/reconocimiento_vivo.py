@@ -1,4 +1,4 @@
-"""Live face recognition with Google Cloud Pub/Sub integration."""
+"""Reconocimiento facial en vivo con integración de Google Cloud Pub/Sub."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ COOLDOWN_UNKNOWN_S = 60.0
 
 
 def _parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Multiclass face recognition with Pub/Sub.")
+    p = argparse.ArgumentParser(description="Reconocimiento facial multiclase con Pub/Sub.")
     p.add_argument("--modelo", type=Path, default=_MODEL_PATH_DEFAULT)
     p.add_argument(
         "--umbral_confianza",
@@ -57,12 +57,12 @@ def main() -> None:
     print(f"Umbral de confianza: {umbral:.0%}")
 
     # cliente que publica mensajes al topic de GCP
-    print("Starting Pub/Sub client...")
+    print("Iniciando cliente Pub/Sub...")
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
 
     # carga el modelo multiclase entrenado en Colab (desconocido / luciano / paola)
-    print("Loading model...")
+    print("Cargando modelo...")
     modelo = load_modelo(args.modelo)
 
     # detector de rostros basado en Haar Cascade (incluido en OpenCV)
@@ -70,10 +70,10 @@ def main() -> None:
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     )
 
-    print("Connecting camera...")
+    print("Conectando cámara...")
     cap, src = connect_stream(source)
-    print(f"Source: {src}")
-    print("Press Q to quit.")
+    print(f"Fuente: {src}")
+    print("Presioná Q para salir.")
 
     # timestamps del último envío para aplicar cooldown por tipo de evento
     ultimo_envio_global = 0.0
@@ -172,7 +172,7 @@ def main() -> None:
                         }
                         try:
                             publisher.publish(topic_path, data=json.dumps(payload).encode())
-                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Unknown detected — triggering alert.")
+                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Desconocido detectado — disparando alerta.")
                         except Exception as e:
                             print(f"[ERROR] Pub/Sub: {e}")
 
@@ -190,7 +190,7 @@ def main() -> None:
                         }
                         try:
                             publisher.publish(topic_path, data=json.dumps(payload).encode())
-                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Detected: {nombre}")
+                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Detectado: {nombre}")
                         except Exception as e:
                             print(f"[ERROR] Pub/Sub: {e}")
 

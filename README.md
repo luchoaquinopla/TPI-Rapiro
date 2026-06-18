@@ -13,7 +13,9 @@ rapiro_project/
 │
 ├── data/
 │   ├── lfw/              # Dataset Labeled Faces in the Wild (clase "desconocido")
-│   └── own_dataset/      # Fotos propias por persona (una carpeta por persona)
+│   ├── own_dataset/      # Fotos propias por persona, modelo CNN clásico (una carpeta por persona)
+│   ├── deepface_db/      # Fotos de referencia por persona, modelo DeepFace (una carpeta por persona)
+│   └── deepface_home/    # Caché de pesos/modelos que descarga DeepFace en tiempo de ejecución
 │
 ├── models/
 │   └── detection/
@@ -22,20 +24,26 @@ rapiro_project/
 ├── src/
 │   ├── capture/
 │   │   ├── stream_capture.py      # Captura OpenCV: webcam local + IP Webcam
-│   │   ├── dataset_generator.py   # Generador de dataset por persona
+│   │   ├── dataset_generator.py   # Generador de dataset por persona (modelo CNN clásico)
 │   │   ├── model_loader.py        # Carga de modelo Keras con load_model()
 │   │   ├── cloud_notifier.py      # Alertas: Cloud Storage + Firestore + Gmail
-│   │   └── reconocimiento_vivo.py # Clasificación multiclase en tiempo real
-│   ├── networks/         # Arquitectura y entrenamiento de redes
-│   ├── robot/
-│   │   ├── rapiro_controller.py  # Control de servos via serial UART
-│   │   ├── subscriber.py         # Subscriber de Pub/Sub (corre en la Raspberry Pi)
-│   │   └── test_servos.py        # Prueba manual de servos
-│   └── cloud/            # Integración GCP
+│   │   └── reconocimiento_vivo.py # Clasificación multiclase en tiempo real (modelo CNN clásico)
+│   ├── CNN/
+│   │   └── red_neuronal.py       # Arquitectura y entrenamiento de la CNN multiclase (Colab)
+│   ├── deepface/
+│   │   ├── dataset_generator_df.py     # Generador de dataset por persona (modelo DeepFace)
+│   │   └── reconocimiento_vivo_df.py   # Reconocimiento en vivo con DeepFace (FaceNet) + MediaPipe
+│   ├── dashboard/
+│   │   ├── app.py         # API REST (FastAPI) que expone eventos/estadísticas/imágenes
+│   │   └── gcp_client.py  # Consultas a Firestore y Cloud Storage para el dashboard
+│   └── robot/
+│       ├── rapiro_controller.py  # Control de servos via serial UART
+│       ├── subscriber.py         # Subscriber de Pub/Sub vía gRPC (corre en la Raspberry Pi)
+│       ├── subscriber_rest.py    # Subscriber de Pub/Sub vía REST, alternativa sin gRPC
+│       └── test_servos.py        # Prueba manual de servos
 │
-├── tests/                # Pruebas unitarias e integración
-├── notebooks/            # Experimentación en Jupyter/Colab
 ├── infrastructure/
+│   ├── keys/             # Credenciales de cuenta de servicio GCP (no versionado)
 │   └── terraform/        # IaC para GCP
 ├── docs/                 # Documentación técnica
 │
@@ -145,6 +153,20 @@ python src/capture/reconocimiento_vivo.py --modelo models/detection/otro_modelo.
 
 Cuando se detecta un desconocido, además de publicar en Pub/Sub se ejecuta automáticamente `cloud_notifier.notify_unknown()`.
 
+### Reconocimiento en vivo con DeepFace (`reconocimiento_vivo_df.py`)
+
+Alternativa al clasificador CNN: en vez de entrenar un modelo propio, usa **DeepFace** (modelo FaceNet) para generar embeddings y los compara por distancia de coseno contra los embeddings de referencia calculados a partir de `data/deepface_db/<persona>/`. La detección de rostro en el frame la hace **MediaPipe**.
+
+```bash
+python src/deepface/reconocimiento_vivo_df.py
+```
+
+En el primer arranque genera y cachea los embeddings de referencia (`data/deepface_home/`); en corridas posteriores los reutiliza salvo que cambien las fotos de la base. Publica los mismos eventos (`rostro_detectado` / `desconocido_detectado`) al topic de Pub/Sub que `reconocimiento_vivo.py`, y también dispara `cloud_notifier.notify_unknown()` ante un desconocido.
+
+### Entrenamiento de la CNN (`src/CNN/red_neuronal.py`)
+
+Script pensado para correr en **Google Colab** (no en local): define y entrena la arquitectura convolucional multiclase que después se exporta como `models/detection/modelo_tpi.keras` y se usa en `reconocimiento_vivo.py`. Incluye `EarlyStopping`, `ReduceLROnPlateau` y `ModelCheckpoint` para guardar el mejor modelo según `val_accuracy`. Requiere que `train_generator`, `val_generator` y `NUM_CLASSES` estén definidos previamente en el notebook (generadores de imágenes del dataset propio + LFW).
+
 ### Notificaciones de desconocidos (`cloud_notifier.py`)
 
 Al detectar una persona desconocida el sistema:
@@ -178,6 +200,16 @@ Google Cloud Pub/Sub
 | `desconocido_detectado` | Sacude la cabeza (no × 2) · levanta ambos brazos · 3 s · posición neutra |
 
 El movimiento de cabeza usa el servo `SERVO_CABEZA = 0` (ajustar si el cableado es distinto).
+
+#### Subscriber alternativo por REST (`subscriber_rest.py`)
+
+Hace lo mismo que `subscriber.py` pero usando llamadas REST directas a la API de Pub/Sub (`pull`/`acknowledge`) en vez de la librería `google-cloud-pubsub` (gRPC). Usar esta variante si en la Raspberry Pi falla `grpcio` con un `Bus error` (frecuente en Python 3.13 sobre arquitectura armv7l).
+
+```bash
+python src/robot/subscriber_rest.py
+```
+
+Requiere las mismas credenciales GCP que `subscriber.py`, más `requests` y `google-auth` (incluidas en `requirements.txt`).
 
 #### Dependencias (instalar en la Raspberry Pi)
 
@@ -320,6 +352,29 @@ python src/capture/reconocimiento_vivo.py
 ```
 
 A partir de este momento: cada cara detectada publica en Pub/Sub y el RAPIRO reacciona en ~1-2 segundos.
+
+---
+
+## Dashboard (`src/dashboard/`)
+
+API REST (FastAPI) que expone el historial de detecciones guardado en Firestore/Cloud Storage, pensada para visualizar la actividad del RAPIRO desde el navegador.
+
+```bash
+cd src/dashboard
+python app.py
+```
+
+Por defecto levanta en `http://localhost:8080` (configurable con la variable `DASHBOARD_PORT`).
+
+| Endpoint | Descripción |
+|---|---|
+| `GET /` | Sirve la interfaz estática (`static/index.html`) |
+| `GET /api/events?limit=50` | Últimos eventos de reconocimiento (conocidos + desconocidos) |
+| `GET /api/stats` | Estadísticas agregadas: totales, confianza promedio, conteo por identidad |
+| `GET /api/images?limit=20` | Imágenes de rostros desconocidos subidas a Cloud Storage |
+| `DELETE /api/clear` | Borra todos los eventos registrados en Firestore |
+
+Requiere `GOOGLE_APPLICATION_CREDENTIALS` configurado (mismas credenciales GCP que el resto del proyecto).
 
 ---
 
