@@ -33,6 +33,30 @@ _DEFAULT_OUTPUT = _PROJECT_ROOT / "data" / "deepface_db"
 _WINDOW = "Generador de Dataset DeepFace"
 _FACE_SIZE = (224, 224)  # Tamaño óptimo para la mayoría de los modelos de DeepFace (ej. VGG-Face)
 
+# Fases para el modo de 200 fotos con diversidad de poses y accesorios.
+# Cada tupla: (fotos_acumuladas_al_terminar_fase, label_display, instruccion_terminal, label_pausa_pantalla)
+_FASES_200: list[tuple[int, str, str, str]] = [
+    (20,  "1/7 Sin accesorios — Frontal",
+          "-> Fase 2/7: SEMI-PERFIL DERECHO. Girá la cabeza ~45° a la derecha y mantené esa posición.",
+          "¡GIRÁ A LA DERECHA ~45°! Pulsá Espacio"),
+    (40,  "2/7 Sin accesorios — Semi-perfil derecho",
+          "-> Fase 3/7: SEMI-PERFIL IZQUIERDO. Girá la cabeza ~45° a la izquierda.",
+          "¡GIRÁ A LA IZQUIERDA ~45°! Pulsá Espacio"),
+    (60,  "3/7 Sin accesorios — Semi-perfil izquierdo",
+          "-> Fase 4/7: ARRIBA / ABAJO. Incliná la cabeza ~30° hacia arriba y luego abajo, alternando.",
+          "¡INCLINÁ ARRIBA Y ABAJO! Pulsá Espacio"),
+    (80,  "4/7 Sin accesorios — Arriba / Abajo",
+          "-> Fase 5/7: PONGASE LA GORRA. Variá los ángulos: frontal, lados, arriba/abajo.",
+          "¡PONGASE LA GORRA! Pulsá Espacio"),
+    (120, "5/7 Con Gorra — todos los ángulos",
+          "-> Fase 6/7: PONGASE LA CAPUCHA. Variá los ángulos lentamente.",
+          "¡PONGASE LA CAPUCHA! Pulsá Espacio"),
+    (160, "6/7 Con Capucha — todos los ángulos",
+          "-> Fase 7/7: PONGASE LOS ANTEOJOS. Variá los ángulos lentamente.",
+          "¡PONGASE LOS ANTEOJOS! Pulsá Espacio"),
+    (200, "7/7 Con Anteojos — todos los ángulos", "", ""),
+]
+
 
 def _siguiente_indice(carpeta: Path, persona: str) -> int:
     """Próximo número para {persona}_NNNN.jpg según lo ya guardado."""
@@ -127,6 +151,8 @@ def capturar_rostros(
     print("\n--- INICIO DE CAPTURA DE ROSTROS ---")
     if max_fotos == 100:
         print("-> Fase 1/4: Rostro Normal (sin accesorios, gira la cabeza despacio)")
+    if max_fotos == 200:
+        print("-> Fase 1/7: FRONTAL sin accesorios. Mirá directo a la cámara.")
     print("Presione la tecla ESPACIO en la ventana de la cámara para INICIAR la captura.")
 
     contador = inicio
@@ -135,6 +161,7 @@ def capturar_rostros(
     ultima_guardada = 0.0
     intervalo_seg = intervalo_ms / 1000.0
     ultimo_pauso_fase = -1  # Rastrea a qué cantidad de fotos pausamos por cambio de fase
+    _pausas_200 = {f[0] for f in _FASES_200[:-1]}
 
     try:
         while contador < objetivo:
@@ -142,18 +169,13 @@ def capturar_rostros(
             if max_fotos == 100 and guardadas_sesion in (25, 50, 75) and ultimo_pauso_fase != guardadas_sesion:
                 pausado = True
                 ultimo_pauso_fase = guardadas_sesion
-                
-                # Siguiente fase
-                siguiente = ""
+
                 inst_terminal = ""
                 if guardadas_sesion == 25:
-                    siguiente = "ANTEOJOS"
                     inst_terminal = "-> Fase 2/4: PONGASE LOS ANTEOJOS y gire levemente la cabeza."
                 elif guardadas_sesion == 50:
-                    siguiente = "GORRA"
                     inst_terminal = "-> Fase 3/4: PONGASE LA GORRA (asegure buena iluminación en la mirada)."
                 elif guardadas_sesion == 75:
-                    siguiente = "CAPUCHA"
                     inst_terminal = "-> Fase 4/4: PONGASE LA CAPUCHA (foco en las facciones internas del rostro)."
 
                 print(f"\n[PAUSA AUTOMÁTICA] Se completaron {guardadas_sesion} fotos de esta sesión.")
@@ -161,6 +183,20 @@ def capturar_rostros(
                 print("   PAUSA - CAMBIO DE FASE REQUERIDO")
                 print("==================================================")
                 print(inst_terminal)
+                print("==================================================")
+                print("Presione la tecla ESPACIO en la ventana de la cámara para continuar...")
+
+            # Control automático de pausas para el modo de 200 fotos
+            if max_fotos == 200 and guardadas_sesion in _pausas_200 and ultimo_pauso_fase != guardadas_sesion:
+                pausado = True
+                ultimo_pauso_fase = guardadas_sesion
+                fase_actual = next(f for f in _FASES_200 if f[0] == guardadas_sesion)
+
+                print(f"\n[PAUSA AUTOMÁTICA] Se completaron {guardadas_sesion} fotos de esta sesión.")
+                print("==================================================")
+                print("   PAUSA - CAMBIO DE FASE REQUERIDO")
+                print("==================================================")
+                print(fase_actual[2])
                 print("==================================================")
                 print("Presione la tecla ESPACIO en la ventana de la cámara para continuar...")
 
@@ -174,8 +210,7 @@ def capturar_rostros(
                     instruccion_fase = "3/4 Con Gorra"
                 else:
                     instruccion_fase = "4/4 Con Capucha"
-                
-                # Si está pausado en el corte de fase, destacar la instrucción
+
                 if pausado and guardadas_sesion in (25, 50, 75):
                     if guardadas_sesion == 25:
                         instruccion_fase = "¡PONTE LOS ANTEOJOS! y pulsa Espacio"
@@ -183,6 +218,13 @@ def capturar_rostros(
                         instruccion_fase = "¡PONTE LA GORRA! y pulsa Espacio"
                     elif guardadas_sesion == 75:
                         instruccion_fase = "¡PONTE LA CAPUCHA! y pulsa Espacio"
+            elif max_fotos == 200:
+                fase_info = next((f for f in _FASES_200 if guardadas_sesion < f[0]), _FASES_200[-1])
+                instruccion_fase = fase_info[1]
+
+                if pausado and guardadas_sesion in _pausas_200:
+                    fase_pausa = next(f for f in _FASES_200 if f[0] == guardadas_sesion)
+                    instruccion_fase = fase_pausa[3]
             else:
                 instruccion_fase = f"Personalizado ({guardadas_sesion}/{max_fotos})"
 
@@ -285,8 +327,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-fotos",
         type=int,
-        default=100,  # 100 fotos es ideal para DeepFace
-        help="Cuántas fotos guardar en esta sesión (default: 100)",
+        default=100,
+        help="Cuántas fotos guardar en esta sesión (default: 100). Usar 200 activa el modo guiado de 7 fases con diversidad de poses y accesorios.",
     )
     parser.add_argument(
         "--intervalo-ms",

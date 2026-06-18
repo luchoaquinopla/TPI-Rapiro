@@ -245,7 +245,7 @@ def main() -> None:
         return
 
     # Cliente Pub/Sub
-    print("Starting Pub/Sub client...")
+    print("Iniciando cliente de Pub/Sub...")
     try:
         publisher = pubsub_v1.PublisherClient()
         topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
@@ -260,10 +260,10 @@ def main() -> None:
     mp_face_detection = mp.solutions.face_detection
     face_detector = mp_face_detection.FaceDetection(model_selection=0, min_detection_confidence=0.5)
 
-    print("Connecting camera...")
+    print("Conectando cámara...")
     cap, src = connect_stream(source)
-    print(f"Source: {src}")
-    print("Press Q to quit.")
+    print(f"Fuente: {src}")
+    print("Presione Q para salir.")
 
     ultimo_envio_conocido = 0.0
     ultimo_envio_desconocido = 0.0
@@ -325,13 +325,16 @@ def main() -> None:
                     if len(buf) >= VOTING_MIN_FRAMES:
                         nombre = Counter(buf).most_common(1)[0][0]
 
+                    if nombre in IDENTIDADES_IGNORADAS:
+                        continue
+
                     es_desconocido = (nombre == "desconocido")
                     color = (0, 0, 255) if es_desconocido else (0, 255, 0)
-                    
+
                     # Dibujar bounding box y etiqueta
                     cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
                     cv2.rectangle(frame, (x, y - 40), (x + w, y), color, cv2.FILLED)
-                    
+
                     label = f"{nombre.capitalize()} {confianza_pct:.0f}%"
                     cv2.putText(
                         frame,
@@ -353,9 +356,6 @@ def main() -> None:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
                         continue
 
-                    if nombre in IDENTIDADES_IGNORADAS:
-                        continue
-
                     if not es_desconocido:
                         # Persona Conocida
                         if ahora - ultimo_envio_conocido >= COOLDOWN_KNOWN_S:
@@ -369,11 +369,11 @@ def main() -> None:
                             if publisher and topic_path:
                                 try:
                                     publisher.publish(topic_path, data=json.dumps(payload).encode())
-                                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Pub/Sub sent: Detected {nombre} ({confianza_pct:.1f}%)")
+                                    print(f"[{datetime.now().strftime('%H:%M:%S')}] Pub/Sub enviado: detectado {nombre} ({confianza_pct:.1f}%)")
                                 except Exception as e:
                                     print(f"[ERROR] Pub/Sub publish: {e}")
                             else:
-                                print(f"[OFFLINE] Detected: {nombre} ({confianza_pct:.1f}%)")
+                                print(f"[OFFLINE] Detectado: {nombre} ({confianza_pct:.1f}%)")
                     else:
                         # Persona Desconocida
                         if ahora - ultimo_envio_desconocido >= COOLDOWN_UNKNOWN_S:
@@ -384,17 +384,17 @@ def main() -> None:
                             }
                             
                             # Alerta en la nube (Cloud Storage + Firestore + Gmail)
-                            print(f"[{datetime.now().strftime('%H:%M:%S')}] Unknown face detected! Sending cloud alert...")
+                            print(f"[{datetime.now().strftime('%H:%M:%S')}] ¡Rostro desconocido detectado! Enviando alerta a la nube...")
                             notify_unknown(rostro_recortado, confianza_pct)
-                            
+
                             if publisher and topic_path:
                                 try:
                                     publisher.publish(topic_path, data=json.dumps(payload).encode())
-                                    print(f"[OK] Pub/Sub sent: Desconocido detectado")
+                                    print(f"[OK] Pub/Sub enviado: Desconocido detectado")
                                 except Exception as e:
                                     print(f"[ERROR] Pub/Sub publish: {e}")
 
-            cv2.imshow("RAPIRO - DeepFace Vision", frame)
+            cv2.imshow("RAPIRO - Visión DeepFace", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
     finally:
